@@ -643,7 +643,7 @@ export default function Dashboard() {
                 {suggestions ? (
                   <>
                     <Markdown remarkPlugins={[remarkGfm]}>
-                      {suggestions}
+                      {suggestions as string}
                     </Markdown>
 
                     <div className='mt-8 grid grid-cols-2 gap-6'>
