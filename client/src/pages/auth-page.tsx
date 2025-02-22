@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -16,13 +16,15 @@ import { z } from "zod";
 const authFormSchema = insertUserSchema.extend({
   username: z.string()
     .min(1, "Username or email is required")
+    .transform((val) => val.toLowerCase().trim())
     .refine((val) => {
-      // Check if it's a valid email
-      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-      // If it's not an email, it should be at least 3 characters long
-      return emailRegex.test(val) || val.length >= 3;
+      // Check if it's a valid email or username
+      const isEmail = z.string().email().safeParse(val).success;
+      const isValidUsername = /^[a-zA-Z0-9_]{3,}$/.test(val);
+
+      return isEmail || isValidUsername;
     }, {
-      message: "Must be a valid email or username (minimum 3 characters)",
+      message: "Must be a valid email (e.g. user@example.com) or username (minimum 3 characters, only letters, numbers, and underscore)",
     }),
 });
 
@@ -61,9 +63,7 @@ export default function AuthPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <Link href="/">
-                <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto cursor-pointer" />
-              </Link>
+              <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto cursor-pointer" />
             </div>
             <CardTitle className="text-2xl font-bold">Smart Budget</CardTitle>
             <CardDescription>
