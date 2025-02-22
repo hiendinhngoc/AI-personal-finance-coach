@@ -29,12 +29,12 @@ export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   amount: doublePrecision("amount").notNull(),
-  currency: text("currency").notNull(),
+  currency: text("currency").default('usd'),  // Made nullable with default
   category: text("category").notNull(),
   description: text("description"),
   receiptUrl: text("receipt_url"),
   date: timestamp("date").notNull(),
-  extractedItems: json("extracted_items").$type<ExpenseItem[]>(),
+  extractedItems: json("extracted_items").$type<ExpenseItem[]>().default(null),  // Made nullable
 });
 
 export const notifications = pgTable("notifications", {
