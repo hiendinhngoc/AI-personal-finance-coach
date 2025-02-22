@@ -10,11 +10,13 @@ import {
   CloudLightningIcon,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import Markdown from 'react-markdown'
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import remarkGfm from 'remark-gfm'
 import {
   Dialog,
   DialogContent,
@@ -675,10 +677,7 @@ const Dashboard = () => {
               <div className="prose dark:prose-invert max-w-none">
                 {suggestions ? (
                   <>
-                    <div
-                      className="markdown-content"
-                      dangerouslySetInnerHTML={{ __html: suggestions }}
-                    />
+                    <Markdown remarkPlugins={[remarkGfm]}>{suggestions}</Markdown>
 
                     <div className="mt-8 grid grid-cols-2 gap-6">
                       <div className="border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4">
