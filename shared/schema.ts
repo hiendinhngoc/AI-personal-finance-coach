@@ -3,9 +3,9 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const expenseItemSchema = z.object({
-  amount: z.number(),
-  currency: z.enum(['vnd', 'usd', 'eur']),
-  category: z.enum(['food', 'transportation', 'utility', 'rent', 'health'])
+  amount: z.number().optional(),
+  currency: z.enum(['vnd', 'usd', 'eur']).optional(),
+  category: z.enum(['food', 'transportation', 'utility', 'rent', 'health']).optional()
 });
 
 export type ExpenseItem = z.infer<typeof expenseItemSchema>;

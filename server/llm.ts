@@ -52,7 +52,7 @@ async function convertImageToText(base64Image: string): Promise<string> {
         content: [
           {
             type: "text",
-            text: "Read this receipt carefully and convert all the content to text. Include all relevant details like store name, date, items, prices, and totals."
+            text: "Read this receipt and convert all content to text. Include all details: store name, date, items with prices, subtotals, taxes, and final total. Format numbers consistently and preserve currency symbols."
           },
           {
             type: "image_url",
@@ -61,9 +61,10 @@ async function convertImageToText(base64Image: string): Promise<string> {
             }
           }
         ],
-      }
+      },
     ]);
 
+    console.log('Extracted text from image:', response.content);
     return response.content as string;
   } catch (error: any) {
     console.error('Error converting image to text:', error);
@@ -71,16 +72,8 @@ async function convertImageToText(base64Image: string): Promise<string> {
   }
 }
 
-export async function generateVisionResponse(
-  base64Image: string,
-  prompt?: string,
-): Promise<ExpenseItem[]> {
+async function extractExpenseItems(text: string): Promise<ExpenseItem[]> {
   try {
-    // Step 1: Convert image to text
-    const extractedText = await convertImageToText(base64Image);
-    console.log('Extracted text from image:', extractedText);
-
-    // Step 2: Set up parser and prompt for converting text to structured data
     const parser = new JsonOutputParser<ExpenseItem[]>();
     const formatInstructions = `Respond with a valid JSON array of expense objects in the following format:
 [
@@ -111,7 +104,10 @@ ${formatInstructions}`,
       ],
       [
         "user",
-        prompt || "Analyze this receipt text and extract all expense items. Group similar items if needed.\n\nReceipt text:\n" + extractedText,
+        `Analyze this receipt text and extract all expense items. Group similar items if needed.
+
+Receipt text:
+${text}`,
       ],
     ]);
 
@@ -121,16 +117,27 @@ ${formatInstructions}`,
     const structuredData = await chain.invoke({});
     console.log("Generated structured data:", structuredData);
 
-    try {
-      // Validate each item in the array
-      const validatedItems = structuredData.map(item => expenseItemSchema.parse(item));
-      return validatedItems;
-    } catch (validationError: any) {
-      console.error("Validation Error:", validationError);
-      throw new Error(`Response validation failed: ${validationError.message}`);
-    }
+    return structuredData.map(item => expenseItemSchema.parse(item));
   } catch (error: any) {
-    console.error("Error generating vision response:", error);
+    console.error('Error extracting expense items:', error);
+    throw new Error('Failed to extract expense items: ' + error.message);
+  }
+}
+
+export async function generateVisionResponse(
+  base64Image: string,
+  prompt?: string,
+): Promise<ExpenseItem[]> {
+  try {
+    // Step 1: Convert image to text using visionLLM
+    const extractedText = await convertImageToText(base64Image);
+
+    // Step 2: Extract structured data from text using textLLM
+    const expenseItems = await extractExpenseItems(extractedText);
+
+    return expenseItems;
+  } catch (error: any) {
+    console.error("Error in vision response pipeline:", error);
     throw new Error(error.message || "Failed to generate vision response");
   }
 }
