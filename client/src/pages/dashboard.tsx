@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BellIcon, PlusIcon } from "lucide-react";
+import { BellIcon, PlusIcon, LogOutIcon } from "lucide-react";
 import type { Budget, Expense, Notification } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
@@ -25,7 +25,7 @@ const EXPENSE_CATEGORIES = [
 export default function Dashboard() {
   const { toast } = useToast();
   const [month] = useState(new Date().toISOString().slice(0, 7));
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
 
   const { data: budget } = useQuery<Budget>({
     queryKey: [`/api/budget/${month}`],
@@ -88,7 +88,7 @@ export default function Dashboard() {
             </p>
             <Dialog>
               <DialogTrigger asChild>
-                <Button>
+                <Button variant="outline">
                   <BellIcon className="h-4 w-4 mr-2" />
                   {notifications?.filter(n => !n.read).length || 0}
                 </Button>
@@ -109,6 +109,14 @@ export default function Dashboard() {
                 </div>
               </DialogContent>
             </Dialog>
+            <Button 
+              variant="outline"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              <LogOutIcon className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
 
