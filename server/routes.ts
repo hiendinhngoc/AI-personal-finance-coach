@@ -11,43 +11,8 @@ import {
   textLLM,
   reformatJsonResponse,
 } from "./llm";
-
-async function formatExpenses(
-  userId: number,
-  month: string
-): Promise<ExpenseBudgetInformation> {
-  const [rawExpenses, budget] = await Promise.all([
-    storage.getExpenses(userId, month),
-    storage.getBudget(userId, month),
-  ]);
-  const totalExpenses = rawExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
-  const expensesByCategory = rawExpenses.reduce((acc, expense) => {
-    if (!acc[expense.category]) {
-      acc[expense.category] = 0;
-    }
-    acc[expense.category] += expense.amount;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const expenseDetails: ExpenseDetail[] = Object.entries(
-    expensesByCategory
-  ).map(([category, amount]) => ({
-    category,
-    amount,
-  }));
-
-  console.log(budget);
-
-  return {
-    month: parseInt(month),
-    totalExpenses,
-    expenseDetails,
-    budget: budget?.totalAmount || 0,
-  };
-}
+import { formatExpenses } from "./utils";
+import { initializeAgent, getMessage } from "./agent";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -253,13 +218,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!threadId) {
-        return res.status(400).json({ error: "ThreadId parameter is required" });
+        return res
+          .status(400)
+          .json({ error: "ThreadId parameter is required" });
       }
 
       // Use formatExpenses utility to transform the expenses
       // Get current month integer
       const month = new Date().getMonth() + 1;
-      const currentFinancialData = await formatExpenses(req.user.id, month.toString());
+      const currentFinancialData = await formatExpenses(
+        req.user.id,
+        month.toString()
+      );
 
       // Get response from agent
       const response = await getMessage(
@@ -269,25 +239,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userMessage
       );
 
-      console.log(response)
+      console.log(response);
 
       if (!response) {
-        return res.status(500).json({ error: "Failed to get response from agent" });
+        return res
+          .status(500)
+          .json({ error: "Failed to get response from agent" });
       }
 
       res.json({
-        message: response
+        message: response,
       });
-
     } catch (error) {
-      console.error('Chat API Error:', error);
+      console.error("Chat API Error:", error);
       res.status(500).json({
-        error: "An error occurred while processing your request."
+        error: "An error occurred while processing your request.",
       });
     }
   });
-
-
 
   const httpServer = createServer(app);
   return httpServer;
