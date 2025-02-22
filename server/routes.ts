@@ -8,6 +8,7 @@ import {
   generateCostCuttingMeasureAdviseResponse,
   generateVisionResponse,
   textLLM,
+  reformatJsonResponse
 } from "./llm";
 
 async function formatExpenses(userId: number, month: string): Promise<ExpenseBudgetInformation> {
@@ -28,6 +29,8 @@ async function formatExpenses(userId: number, month: string): Promise<ExpenseBud
     category,
     amount
   }));
+
+  console.log(budget)
 
   return {
     month: parseInt(month),
@@ -145,18 +148,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/weather", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
+      const formatInstructions = `
+      {
+        "main": "Clear",
+        "description": "Sunny with no clouds",
+        "temp": 72.5,
+        "humidity": 60,
+        "windSpeed": 5.2
+      }
+      Rules:
+      - main: Must be one of the following: "Clear", "Clouds", "Rain", "Snow", or "Thunderstorm".
+      - description: A short text describing the weather conditions.
+      - temp: Temperature in Fahrenheit as a number.
+      - humidity: Humidity percentage as a number.
+      - windSpeed: Wind speed in mph as a number.
+      `
       const response = await textLLM.invoke([
         {
           role: "system",
-          content: "You are a weather API. Return only a JSON object with the current weather in San Francisco with these fields: main (Clear/Clouds/Rain/Snow/Thunderstorm), description, temp (in Fahrenheit), humidity, windSpeed.",
+          content: `You are a weather API. Return only a JSON object with the current weather in San Francisco in the following format:
+          ---
+          JSON SCHEMA:
+          ${formatInstructions}
+
+          ---
+          OUTPUT REQUIREMENTS:
+          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`
         },
         {
           role: "user",
           content: "What's the current weather in San Francisco?",
         },
       ]);
-
-      const weatherData = JSON.parse(response.content as string);
+      const content = response.content;
+      let weatherData = {}
+      try {
+        weatherData = JSON.parse(response.content as string);
+      } catch (e) {
+        const fixedContent = await reformatJsonResponse(formatInstructions, content);
+        weatherData = JSON.parse(fixedContent);
+      }
       res.json(weatherData);
     } catch (error) {
       console.error("Error fetching weather:", error);

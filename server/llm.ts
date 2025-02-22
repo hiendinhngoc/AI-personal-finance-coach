@@ -41,6 +41,37 @@ export async function generateTextResponse(prompt: string): Promise<string> {
   }
 }
 
+export async function reformatJsonResponse(formatInstructions: string, content: string): Promise<string> {
+  try {
+    const response = await textLLM.invoke([
+      {
+        role: "system",
+        content: `You are an expert in extracting structured data from raw text.Your task is to convert the given RAW DATA into a JSON object that follows the specified schema.
+
+      ---
+      ### JSON SCHEMA:
+      ${formatInstructions}
+
+      ### Instructions:
+      - Extract only relevant data.
+      - Ensure all values strictly match the schema's data types and format.
+      - Do NOT add any extra information or explanations.
+      - Respond ONLY with a valid JSON object that conforms to the schema.
+      `,
+      },
+      {
+        role: "user",
+        content: `### RAW DATA:
+      ${content}`,
+      },
+    ]);
+    return response.content as string;
+  } catch (error) {
+    console.error("Error generating text response:", error);
+    throw new Error("Failed to generate text response");
+  }
+}
+
 export interface ExpenseDetail {
   category?: string;
   amount?: number;
@@ -170,29 +201,8 @@ Rules:
       parsedContent = JSON.parse(content);
     } catch {
       // Call text_llm to fix error json content
-      const fixedContent = await textLLM.invoke([
-        {
-          role: "system",
-          content: `You are an expert in extracting structured data from raw text.Your task is to convert the given RAW DATA into a JSON object that follows the specified schema.
-
-       ---
-       ### JSON SCHEMA:
-       ${formatInstructions}
-
-       ### Instructions:
-       - Extract only relevant data.
-       - Ensure all values strictly match the schema's data types and format.
-       - Do NOT add any extra information or explanations.
-       - Respond ONLY with a valid JSON object that conforms to the schema.
-       `,
-        },
-        {
-          role: "user",
-          content: `### RAW DATA:
-       ${content}`,
-        },
-      ]);
-      parsedContent = JSON.parse(fixedContent.content as string);
+      const fixedContent = await reformatJsonResponse(formatInstructions, content);
+      parsedContent = JSON.parse(fixedContent);
     }
     return parsedContent;
   } catch (error) {
