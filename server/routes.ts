@@ -4,39 +4,51 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
 import {
-  ExpenseDetail, ExpenseBudgetInformation,
+  ExpenseDetail,
+  ExpenseBudgetInformation,
   generateCostCuttingMeasureAdviseResponse,
   generateVisionResponse,
   textLLM,
-  reformatJsonResponse
+  reformatJsonResponse,
 } from "./llm";
 
-async function formatExpenses(userId: number, month: string): Promise<ExpenseBudgetInformation> {
+async function formatExpenses(
+  userId: number,
+  month: string,
+): Promise<ExpenseBudgetInformation> {
   const [rawExpenses, budget] = await Promise.all([
     storage.getExpenses(userId, month),
-    storage.getBudget(userId, month)
+    storage.getBudget(userId, month),
   ]);
-  const totalExpenses = rawExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const expensesByCategory = rawExpenses.reduce((acc, expense) => {
-    if (!acc[expense.category]) {
-      acc[expense.category] = 0;
-    }
-    acc[expense.category] += expense.amount;
-    return acc;
-  }, {} as Record<string, number>);
+  const totalExpenses = rawExpenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0,
+  );
+  const expensesByCategory = rawExpenses.reduce(
+    (acc, expense) => {
+      if (!acc[expense.category]) {
+        acc[expense.category] = 0;
+      }
+      acc[expense.category] += expense.amount;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
-  const expenseDetails: ExpenseDetail[] = Object.entries(expensesByCategory).map(([category, amount]) => ({
+  const expenseDetails: ExpenseDetail[] = Object.entries(
+    expensesByCategory,
+  ).map(([category, amount]) => ({
     category,
-    amount
+    amount,
   }));
 
-  console.log(budget)
+  console.log(budget);
 
   return {
     month: parseInt(month),
     totalExpenses,
     expenseDetails,
-    budget: budget?.totalAmount || 0
+    budget: budget?.totalAmount || 0,
   };
 }
 
@@ -61,8 +73,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/expenses/analysis/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const formattedExpenses = await formatExpenses(req.user.id, req.params.month);
-    const costCuttingMeasures = await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
+    const formattedExpenses = await formatExpenses(
+      req.user.id,
+      req.params.month,
+    );
+    const costCuttingMeasures =
+      await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
     res.json(costCuttingMeasures);
   });
 
@@ -78,6 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!parseResult.success) {
       return res.status(400).json(parseResult.error);
     }
+    console.log("parseResult.data", parseResult.data);
     const expense = await storage.createExpense(req.user.id, parseResult.data);
 
     // Update remaining budget
@@ -152,8 +169,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       description: "Sunny with no clouds",
       temp: 72.5,
       humidity: 60,
-      windSpeed: 5.2
-    }
+      windSpeed: 5.2,
+    };
     try {
       const formatInstructions = `
       {
@@ -169,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       - temp: Temperature in Fahrenheit as a number.
       - humidity: Humidity percentage as a number.
       - windSpeed: Wind speed in mph as a number.
-      `
+      `;
       const response = await textLLM.invoke([
         {
           role: "system",
@@ -180,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           ---
           OUTPUT REQUIREMENTS:
-          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`
+          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`,
         },
         {
           role: "user",
@@ -188,11 +205,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       ]);
       const content = response.content as string;
-      let weatherData = defaultWeather
+      let weatherData = defaultWeather;
       try {
         weatherData = JSON.parse(content as string);
       } catch (e) {
-        const fixedContent = await reformatJsonResponse(formatInstructions, content);
+        const fixedContent = await reformatJsonResponse(
+          formatInstructions,
+          content,
+        );
         weatherData = JSON.parse(fixedContent);
       }
       res.json(weatherData);
