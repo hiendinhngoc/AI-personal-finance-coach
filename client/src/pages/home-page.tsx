@@ -1,11 +1,19 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChartPieIcon, ArrowRightIcon, ReceiptIcon, BellIcon, SunIcon, MoonIcon } from "lucide-react";
+import {
+  ChartPieIcon,
+  ArrowRightIcon,
+  ReceiptIcon,
+  BellIcon,
+  SunIcon,
+  MoonIcon,
+} from "lucide-react";
 
 export default function HomePage() {
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const TimeIcon = hour >= 18 || hour < 6 ? MoonIcon : SunIcon;
 
   return (
@@ -13,22 +21,23 @@ export default function HomePage() {
       <div className="container mx-auto px-4 py-16">
         <div className="flex justify-between items-center mb-16">
           <Link href="/">
-            <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto cursor-pointer" />
+            <img
+              src="/cp.jpg"
+              alt="Company Logo"
+              className="h-12 w-auto cursor-pointer"
+            />
           </Link>
           <div className="text-right flex items-center gap-2">
             <TimeIcon className="h-5 w-5 text-primary" />
-            <p className="text-lg text-muted-foreground">
-              {greeting} ⛅
-            </p>
+            <p className="text-lg text-muted-foreground">{greeting} ⛅</p>
           </div>
         </div>
 
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold mb-6">
-            Welcome to Smart Budget
-          </h1>
+          <h1 className="text-5xl font-bold mb-6">Welcome to Smart Budget</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Take control of your finances with our powerful budgeting tools and expense tracking features.
+            Take control of your finances with our powerful budgeting tools and
+            expense tracking features.
           </p>
           <Link href="/auth">
             <Button size="lg" className="mt-8">
@@ -51,7 +60,8 @@ export default function HomePage() {
             <ReceiptIcon className="h-12 w-12 text-primary" />
             <h2 className="text-2xl font-semibold">Upload Receipts</h2>
             <p className="text-muted-foreground">
-              Keep your receipts organized by uploading them directly to the app.
+              Use AI to analyze your receipt image and save the expense
+              automatically.
             </p>
           </Card>
 
@@ -59,7 +69,8 @@ export default function HomePage() {
             <BellIcon className="h-12 w-12 text-primary" />
             <h2 className="text-2xl font-semibold">Smart Alerts</h2>
             <p className="text-muted-foreground">
-              Get notified when you're approaching your budget limits.
+              AI analyzes your current month's expenses compared to the previous
+              month and provides recommendations.
             </p>
           </Card>
         </div>
