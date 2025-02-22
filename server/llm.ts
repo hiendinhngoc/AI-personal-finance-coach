@@ -1,4 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
+import { JsonOutputParser } from "@langchain/core/output_parsers";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { expenseItemSchema, type ExpenseItem } from "@shared/schema";
 
 if (!process.env.OPENROUTER_API_KEY) {
@@ -44,67 +46,49 @@ export async function generateTextResponse(prompt: string): Promise<string> {
 
 export async function generateVisionResponse(base64Image: string, prompt?: string): Promise<ExpenseItem> {
   try {
-    const response = await visionLLM.invoke([
-      {
-        role: "system",
-        content: `You are a receipt analyzer. Your task is to extract expense information from receipts and return it in a specific JSON format.
-
-Instructions:
-1. Analyze the receipt image
-2. Extract the total amount (convert to a number)
-3. Identify the currency (convert to: vnd, usd, or eur)
-4. Determine the expense category (one of: food, transportation, utility, rent, health)
-5. Format your response EXACTLY as shown below:
-
+    const parser = new JsonOutputParser<ExpenseItem>();
+    const formatInstructions = `Respond with a valid JSON object in the following format:
 {
   "amount": 123.45,
   "currency": "usd",
   "category": "food"
 }
 
-IMPORTANT: 
-- Only respond with the JSON object
-- Do not include any explanations or additional text
-- Use lowercase for currency and category
-- Amount must be a number (not a string)
-- Currency must be one of: vnd, usd, eur
-- Category must be one of: food, transportation, utility, rent, health`
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: prompt || "Analyze this receipt and extract the expense information."
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Image}`
-            }
-          }
-        ]
-      }
+Rules:
+- Amount must be a number
+- Currency must be one of: vnd, usd, eur (lowercase)
+- Category must be one of: food, transportation, utility, rent, health (lowercase)
+`;
+
+    const prompt_template = ChatPromptTemplate.fromMessages([
+      ["system", `You are a receipt analyzer. Your task is to extract expense information from receipts.
+${formatInstructions}`],
+      ["user", prompt || "Analyze this receipt and extract the expense information."],
     ]);
 
-    console.log('Raw LLM response:', response.content);
+    const chain = prompt_template
+      .pipe(visionLLM)
+      .pipe(parser);
 
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(response.content as string);
-    } catch (parseError) {
-      console.error('JSON Parse Error. Raw response:', response.content);
-      throw new Error(`Failed to parse JSON response: ${response.content}`);
-    }
+    const messages = await prompt_template.formatMessages({
+      image: {
+        type: "image_url",
+        image_url: {
+          url: `data:image/jpeg;base64,${base64Image}`
+        }
+      }
+    });
+
+    console.log('Raw LLM response:', messages);
 
     try {
-      const validatedResponse = expenseItemSchema.parse(parsedResponse);
+      const validatedResponse = expenseItemSchema.parse(messages);
       return validatedResponse;
-    } catch (validationError) {
+    } catch (validationError: any) {
       console.error('Validation Error:', validationError);
       throw new Error(`Response validation failed: ${validationError.message}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating vision response:', error);
     throw new Error(error.message || 'Failed to generate vision response');
   }
