@@ -15,7 +15,6 @@ export default function HomePage() {
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const TimeIcon = hour >= 18 || hour < 6 ? MoonIcon : SunIcon;
   const { theme, setTheme } = useTheme();
 
   return (
@@ -25,7 +24,7 @@ export default function HomePage() {
           <div className='h-16 flex items-center justify-between'>
             <Link href="/">
               <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-                Smart Budget
+                AI Personal Finance Coach
               </h1>
             </Link>
             <div className='flex items-center space-x-4'>
@@ -39,10 +38,7 @@ export default function HomePage() {
                   <MoonIcon className='h-5 w-5' />
                 )}
               </button>
-              <div className='text-right flex items-center gap-2'>
-                <TimeIcon className='h-5 w-5 text-primary' />
-                <p className='text-lg text-muted-foreground'>{greeting} ⛅</p>
-              </div>
+              <p className='text-lg text-muted-foreground'>{greeting} ⛅</p>
             </div>
           </div>
         </div>
@@ -51,14 +47,14 @@ export default function HomePage() {
       <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
         <div className='text-center mb-16 space-y-6'>
           <h1 className='text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-            Welcome to Smart Budget
+            Welcome to AI Personal Finance Coach
           </h1>
           <p className='text-xl text-muted-foreground max-w-2xl mx-auto'>
             Take control of your finances with our powerful budgeting tools and
             expense tracking features.
           </p>
           <Link href="/auth">
-            <Button size="lg" className='mt-8 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'>
+            <Button size="lg" className='mt-8 backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'>
               Get Started
               <ArrowRightIcon className='ml-2 h-4 w-4' />
             </Button>

@@ -62,7 +62,7 @@ export default function AuthPage() {
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='h-16 flex items-center justify-between'>
             <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-              Smart Budget
+              AI Personal Finance Coach
             </h1>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -83,10 +83,10 @@ export default function AuthPage() {
           <Card className="w-full max-w-md backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300">
             <CardHeader className="space-y-1">
               <div className="flex justify-center mb-4">
-                <ChartPieIcon className="h-12 w-12 text-primary" />
+                <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto" />
               </div>
               <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Welcome to Smart Budget
+                Welcome to AI Personal Finance Coach
               </CardTitle>
               <CardDescription className="text-center">
                 Track your expenses and manage your budget wisely
@@ -108,8 +108,8 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username or Email</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="Enter your username or email" 
+                              <Input
+                                placeholder="Enter your username or email"
                                 {...field}
                                 className="backdrop-blur-md bg-white/40 dark:bg-gray-900/40"
                               />
@@ -125,9 +125,9 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Enter your password" 
+                              <Input
+                                type="password"
+                                placeholder="Enter your password"
                                 {...field}
                                 className="backdrop-blur-md bg-white/40 dark:bg-gray-900/40"
                               />
@@ -138,7 +138,7 @@ export default function AuthPage() {
                       />
                       <Button
                         type="submit"
-                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
                         disabled={loginMutation.isPending}
                       >
                         Login
@@ -156,8 +156,8 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username or Email</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="Enter your username or email" 
+                              <Input
+                                placeholder="Enter your username or email"
                                 {...field}
                                 className="backdrop-blur-md bg-white/40 dark:bg-gray-900/40"
                               />
@@ -173,9 +173,9 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Enter your password" 
+                              <Input
+                                type="password"
+                                placeholder="Enter your password"
                                 {...field}
                                 className="backdrop-blur-md bg-white/40 dark:bg-gray-900/40"
                               />
@@ -186,7 +186,7 @@ export default function AuthPage() {
                       />
                       <Button
                         type="submit"
-                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
                         disabled={registerMutation.isPending}
                       >
                         Register
@@ -205,7 +205,7 @@ export default function AuthPage() {
               Take Control of Your Finances
             </h1>
             <p className="text-lg text-muted-foreground">
-              Smart Budget helps you track expenses, set budgets, and achieve your financial goals with powerful analytics and insights.
+              AI Personal Finance Coach helps you track expenses, set budgets, and achieve your financial goals with powerful analytics and insights.
             </p>
           </div>
         </div>
