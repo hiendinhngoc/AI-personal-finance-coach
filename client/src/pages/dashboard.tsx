@@ -121,9 +121,7 @@ const CATEGORY_CONFIG = {
   },
 } as const;
 
-const CHART_COLORS = Object.values(CATEGORY_CONFIG).map(
-  (config) => config.color
-);
+const CHART_COLORS = Object.values(CATEGORY_CONFIG).map((config) => config.color);
 
 const CATEGORY_ICONS = Object.fromEntries(
   Object.entries(CATEGORY_CONFIG).map(([key, value]) => [key, value.icon])
@@ -168,6 +166,10 @@ const WEATHER_ICONS = {
   Thunderstorm: CloudLightningIcon,
 } as const;
 
+const formatChartValue = (value: number) => {
+  return formatCurrency(value);
+};
+
 export default function Dashboard() {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
@@ -193,8 +195,8 @@ export default function Dashboard() {
     queryKey: [`/api/expenses/analysis/${month}`],
   });
 
-  const { financialAdviceReport = "", topSavingCategory = "", topSpendingCategory = "" } = 
-  analysis || {};
+  const { financialAdviceReport = "", topSavingCategory = "", topSpendingCategory = "" } =
+    analysis || {};
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -364,11 +366,9 @@ export default function Dashboard() {
     }
   };
 
-  // Get the current month and year for filtering
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  // Filter expenses for the current month
   const currentMonthExpenses =
     expenses?.filter((expense) => {
       const expenseDate = new Date(expense.date);
@@ -378,31 +378,51 @@ export default function Dashboard() {
       );
     }) || [];
 
-  // Calculate total monthly expenses
   const totalMonthlyExpenses = currentMonthExpenses.reduce(
     (sum, expense) => sum + expense.amount,
     0
   );
 
-  // Calculate remaining budget
   const totalBudget = budget?.totalAmount || 0;
   const remainingBudget = totalBudget - totalMonthlyExpenses;
 
-  const chartData =
-    expenses?.reduce((acc, expense) => {
-      const existingCategory = acc.find(
-        (item) => item.category === expense.category
-      );
-      if (existingCategory) {
-        existingCategory.value += expense.amount;
+  const chartData = useMemo(() => {
+    const normalizedData = expenses?.reduce((acc, expense) => {
+      const normalizedCategory = expense.category.charAt(0).toUpperCase() + expense.category.slice(1).toLowerCase();
+
+      if (!EXPENSE_CATEGORIES.includes(normalizedCategory)) {
+        // If category doesn't match our predefined list, put it in Other
+        const existingCategory = acc.find((item) => item.category === "Other");
+        if (existingCategory) {
+          existingCategory.value += expense.amount;
+        } else {
+          acc.push({
+            category: "Other",
+            value: expense.amount,
+          });
+        }
       } else {
-        acc.push({
-          category: expense.category,
-          value: expense.amount,
-        });
+        const existingCategory = acc.find(
+          (item) => item.category === normalizedCategory
+        );
+        if (existingCategory) {
+          existingCategory.value += expense.amount;
+        } else {
+          acc.push({
+            category: normalizedCategory,
+            value: expense.amount,
+          });
+        }
       }
       return acc;
     }, [] as { category: string; value: number }[]) || [];
+
+    // Sort by category to maintain consistent order
+    normalizedData.sort((a, b) => a.category.localeCompare(b.category));
+
+    console.log('Normalized Chart Data:', normalizedData);
+    return normalizedData;
+  }, [expenses]);
 
   const groupedExpenses =
     expenses?.reduce((groups, expense) => {
@@ -631,12 +651,31 @@ export default function Dashboard() {
             <TabsContent value='chart'>
               <div className='h-[400px]'>
                 <ResponsiveContainer width='100%' height='100%'>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray='3 3' />
-                    <XAxis dataKey='category' />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey='value' fill='var(--primary)' />
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray='3 3' opacity={0.1} />
+                    <XAxis
+                      dataKey='category'
+                      tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569' }}
+                    />
+                    <YAxis
+                      tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569' }}
+                      tickFormatter={formatChartValue}
+                      domain={[0, 'auto']}  // Ensure minimum of 0
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [formatCurrency(value), 'Amount']}
+                      contentStyle={{
+                        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    />
+                    <Bar dataKey='value' minPointSize={5}>
+                      {chartData.map((entry, index) => {
+                        const category = entry.category as keyof typeof CATEGORY_CONFIG;
+                        const color = CATEGORY_CONFIG[category]?.color || CHART_COLORS[index % CHART_COLORS.length];
+                        return <Cell key={`cell-${index}`} fill={color} />;
+                      })}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -646,7 +685,9 @@ export default function Dashboard() {
               <div className='prose dark:prose-invert max-w-none'>
                 {financialAdviceReport ? (
                   <>
-                    <Markdown remarkPlugins={[remarkGfm]}>{financialAdviceReport}</Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]}>
+                      {financialAdviceReport}
+                    </Markdown>
 
                     <div className='mt-8 grid grid-cols-2 gap-6'>
                       <div className='border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4'>
