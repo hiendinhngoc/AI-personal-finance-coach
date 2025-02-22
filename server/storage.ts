@@ -12,7 +12,7 @@ import {
   notifications,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -28,7 +28,7 @@ export interface IStorage {
   createBudget(userId: number, budget: InsertBudget): Promise<Budget>;
   updateBudget(id: number, remainingAmount: number): Promise<Budget>;
 
-  getExpenses(userId: number, month: string): Promise<Expense[]>;
+  getExpenses(userId: number, period: string): Promise<Expense[]>;
   createExpense(userId: number, expense: InsertExpense): Promise<Expense>;
 
   getNotifications(userId: number): Promise<Notification[]>;
@@ -98,14 +98,36 @@ export class DatabaseStorage implements IStorage {
     return budget;
   }
 
-  async getExpenses(userId: number, month: string): Promise<Expense[]> {
+  async getExpenses(userId: number, period: string): Promise<Expense[]> {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    switch (period) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        break;
+      case 'week':
+        // Get start of current week (Sunday)
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay());
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
     return db
       .select()
       .from(expenses)
       .where(
         and(
-          eq(expenses.userId, userId)
-          // eq(expenses.date.toString().slice(0, 7), month)
+          eq(expenses.userId, userId),
+          gte(expenses.date, startDate),
+          lte(expenses.date, endDate)
         )
       );
   }
@@ -114,11 +136,6 @@ export class DatabaseStorage implements IStorage {
     userId: number,
     insertExpense: InsertExpense
   ): Promise<Expense> {
-    // Get current month's budget for the specific user
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const budget = await this.getBudget(userId, currentMonth);
-
-    // Create expense first
     const [expense] = await db
       .insert(expenses)
       .values({

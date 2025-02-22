@@ -70,9 +70,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(costCuttingMeasures);
   });
 
-  app.get("/api/expenses/:month", async (req, res) => {
+  app.get("/api/expenses/:period", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const expenses = await storage.getExpenses(req.user.id, req.params.month);
+    const expenses = await storage.getExpenses(req.user.id, req.params.period);
     res.json(expenses);
   });
 
