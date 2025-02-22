@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon, Loader2Icon } from "lucide-react";
-import type { Budget, Expense, Notification, InsertExpense, ExtractedExpenseData } from "@shared/schema";
+import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon } from "lucide-react";
+import type { Budget, Expense, Notification, InsertExpense } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -39,24 +39,12 @@ const CHART_COLORS = [
 
 type TimeFilter = typeof TIME_FILTERS[keyof typeof TIME_FILTERS];
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-};
-
-const Dashboard = () => {
+export default function Dashboard() {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
   const [month] = useState(new Date().toISOString().slice(0, 7));
   const { user, logoutMutation } = useAuth();
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: budget } = useQuery<Budget>({
     queryKey: [`/api/budget/${month}`],
@@ -120,51 +108,6 @@ const Dashboard = () => {
     }
   });
 
-  const uploadExpenseMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('invoice', file);
-      return apiRequest("POST", "/api/expenses/upload", formData);
-    },
-    onSuccess: (data: {extracted?: ExtractedExpenseData}) => {
-      // Update form with extracted data
-      if (data.extracted) {
-        const form = document.querySelector('form') as HTMLFormElement;
-        if (form) {
-          if (data.extracted.amount) {
-            const amountInput = form.querySelector('input[name="amount"]') as HTMLInputElement;
-            if (amountInput) amountInput.value = data.extracted.amount.toString();
-          }
-          if (data.extracted.category) {
-            const categorySelect = form.querySelector('select[name="category"]') as HTMLSelectElement;
-            if (categorySelect) categorySelect.value = data.extracted.category;
-          }
-        }
-      }
-
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses/${timeFilter}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/budget/${month}`] });
-      setShowExpenseModal(false);
-      toast({ title: "Expense processed successfully" });
-    },
-    onError: (error: any) => {
-      console.error('Expense upload error:', error);
-      toast({ 
-        title: "Failed to process expense",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
-    },
-    onSettled: () => {
-      setIsProcessing(false);
-      setUploadedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  });
-
   const handleExpenseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -179,15 +122,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      setIsProcessing(true);
-      uploadExpenseMutation.mutate(file);
-    }
-  };
-
+  // Group expenses by category for pie chart
   const chartData = expenses?.reduce((acc, expense) => {
     const existingCategory = acc.find(item => item.category === expense.category);
     if (existingCategory) {
@@ -202,94 +137,235 @@ const Dashboard = () => {
   }, [] as { category: string; value: number }[]) || [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowBudgetModal(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <PlusIcon className="h-4 w-4 mr-1" />
-                Set Budget
-              </button>
-              <button
-                onClick={() => setShowExpenseModal(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <PlusIcon className="h-4 w-4 mr-1" />
-                Add Expense
-              </button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <BellIcon className="h-4 w-4 mr-2" />
-                    {notifications?.filter(n => !n.read).length || 0}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Notifications</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    {notifications?.map(notification => (
-                      <div key={notification.id} className="p-4 bg-muted rounded-lg">
-                        <p>{notification.message}</p>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(notification.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <Button 
-                variant="outline"
-                onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
-              >
-                <LogOutIcon className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-4">
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto cursor-pointer" />
+            </Link>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <p className="text-lg text-muted-foreground">
+              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, 
+              {user?.username} ⛅
+            </p>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <BellIcon className="h-4 w-4 mr-2" />
+                  {notifications?.filter(n => !n.read).length || 0}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Notifications</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {notifications?.map(notification => (
+                    <div key={notification.id} className="p-4 bg-muted rounded-lg">
+                      <p>{notification.message}</p>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(notification.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button 
+              variant="outline"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              <LogOutIcon className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-medium text-gray-900">
-              {getGreeting()}, {user?.username}
-            </h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-500">Monthly Budget</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">
-                ${budget?.totalAmount.toFixed(2) || 0}
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Expenses</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">
-                ${expenses?.reduce((acc, expense) => acc + expense.amount, 0).toFixed(2)}
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-500">Remaining Budget</h3>
-              <p className={`mt-1 text-2xl font-semibold ${
-                budget?.remainingAmount >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                ${budget?.remainingAmount.toFixed(2) || 0}
-              </p>
-            </div>
-          </div>
+        <div className="grid md:grid-cols-2 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Budget Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {budget ? (
+                <div className="space-y-4">
+                  <p>Total Budget: ${budget.totalAmount}</p>
+                  <p>Remaining: ${budget.remainingAmount}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p>No budget set for this month</p>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Set Budget
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Set Monthly Budget</DialogTitle>
+                      </DialogHeader>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const form = e.target as HTMLFormElement;
+                          const amount = parseFloat(form.amount.value);
+                          if (amount > 0) {
+                            createBudgetMutation.mutate(amount);
+                          }
+                        }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <Button type="submit">Save</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Dialog open={expenseModalOpen} onOpenChange={setExpenseModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full">
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add Expense
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Expense</DialogTitle>
+                  </DialogHeader>
+                  <Tabs defaultValue="form" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="form">Manual Entry</TabsTrigger>
+                      <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="form">
+                      <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="category">Category</Label>
+                          <Select name="category" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EXPENSE_CATEGORIES.map(category => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="date">Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="datetime-local"
+                            defaultValue={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
+                        <Button type="submit" className="w-full">Add Expense</Button>
+                      </form>
+                    </TabsContent>
+                    <TabsContent value="upload">
+                      <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="category">Category</Label>
+                          <Select name="category" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EXPENSE_CATEGORIES.map(category => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="date">Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="datetime-local"
+                            defaultValue={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
+                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                          <input
+                            type="file"
+                            name="invoice"
+                            id="invoice"
+                            className="hidden"
+                            accept="image/*"
+                          />
+                          <Label
+                            htmlFor="invoice"
+                            className="flex flex-col items-center gap-2 cursor-pointer"
+                          >
+                            <UploadIcon className="h-8 w-8" />
+                            <span>Click or drag to upload invoice</span>
+                            <span className="text-sm text-muted-foreground">
+                              Supports: JPG, PNG, PDF
+                            </span>
+                          </Label>
+                        </div>
+                        <Button type="submit" className="w-full">Upload & Process</Button>
+                      </form>
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="mt-8">
@@ -374,181 +450,7 @@ const Dashboard = () => {
             </Tabs>
           </CardContent>
         </Card>
-      </main>
-
-      {showBudgetModal && (
-        <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Set Monthly Budget</DialogTitle>
-            </DialogHeader>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const form = e.target as HTMLFormElement;
-                const amount = parseFloat(form.amount.value);
-                if (amount > 0) {
-                  createBudgetMutation.mutate(amount);
-                }
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <Label htmlFor="amount">Amount</Label>
-                <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <Button type="submit">Save</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {showExpenseModal && (
-        <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Expense</DialogTitle>
-            </DialogHeader>
-            <Tabs defaultValue="form" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="form">Manual Entry</TabsTrigger>
-                <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
-              </TabsList>
-              <TabsContent value="form">
-                <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select name="category" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPENSE_CATEGORIES.map(category => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="datetime-local"
-                      defaultValue={new Date().toISOString().slice(0, 16)}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">Add Expense</Button>
-                </form>
-              </TabsContent>
-              <TabsContent value="upload">
-                <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select name="category" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPENSE_CATEGORIES.map(category => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="datetime-local"
-                      defaultValue={new Date().toISOString().slice(0, 16)}
-                    />
-                  </div>
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                    <input
-                      type="file"
-                      name="invoice"
-                      id="invoice"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      ref={fileInputRef}
-                      disabled={isProcessing}
-                    />
-                    <Label
-                      htmlFor="invoice"
-                      className="flex flex-col items-center gap-2 cursor-pointer"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2Icon className="h-8 w-8 animate-spin" />
-                          <span>Processing invoice...</span>
-                        </>
-                      ) : uploadedFile ? (
-                        <>
-                          <ImageIcon className="h-8 w-8" />
-                          <span>{uploadedFile.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <UploadIcon className="h-8 w-8" />
-                          <span>Click or drag to upload invoice</span>
-                          <span className="text-sm text-muted-foreground">
-                            Supports: JPG, PNG, PDF
-                          </span>
-                        </>
-                      )}
-                    </Label>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? 'Processing...' : 'Upload & Process'}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        </Dialog>
-      )}
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
