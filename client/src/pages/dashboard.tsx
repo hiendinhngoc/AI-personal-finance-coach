@@ -56,6 +56,12 @@ import type {
 } from "@shared/schema";
 import type { LucideIcon } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "@heroicons/react/24/solid";
+import cn from 'classnames';
+
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -169,6 +175,9 @@ const Dashboard = () => {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState('list');
+
 
   const { data: weather } = useQuery({
     queryKey: ["weather"],
@@ -303,13 +312,30 @@ const Dashboard = () => {
     const form = e.target as HTMLFormElement;
     const amount = parseFloat(form.amount.value);
     const category = form.category.value;
-    const date = form.date.value || new Date().toISOString();
 
     if (amount > 0 && category) {
-      createExpenseMutation.mutate({ amount, category, date });
+      createExpenseMutation.mutate({
+        amount,
+        category,
+        date: selectedDate.toISOString(),
+      });
       form.reset();
+      setSelectedDate(new Date());
     }
   };
+
+  const currentMonthExpenses = expenses?.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    return expenseDate.getMonth() === new Date().getMonth() &&
+           expenseDate.getFullYear() === new Date().getFullYear();
+  }) || [];
+
+  const totalMonthlyExpenses = currentMonthExpenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0
+  );
+
+  const remainingBudget = (budget?.totalAmount || 0) - totalMonthlyExpenses;
 
   const chartData =
     expenses?.reduce(
@@ -457,12 +483,10 @@ const Dashboard = () => {
             className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Total Expenses
+              Total Expenses (This Month)
             </h3>
             <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              {formatCurrency(
-                expenses?.reduce((acc, expense) => acc + expense.amount, 0) || 0,
-              )}
+              {formatCurrency(totalMonthlyExpenses)}
             </p>
           </div>
 
@@ -474,12 +498,12 @@ const Dashboard = () => {
             </h3>
             <p
               className={`mt-2 text-3xl font-bold ${
-                (budget?.remainingAmount || 0) >= 0
+                remainingBudget >= 0
                   ? "bg-gradient-to-r from-green-400 to-green-600"
                   : "bg-gradient-to-r from-red-400 to-red-600 animate-pulse"
               } bg-clip-text text-transparent`}
             >
-              {formatCurrency(budget?.remainingAmount || 0)}
+              {formatCurrency(remainingBudget)}
             </p>
           </div>
         </div>
@@ -488,23 +512,25 @@ const Dashboard = () => {
           <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Expenses & Invoices</h2>
-              <div className="flex gap-2">
-                {Object.entries(TIME_FILTERS).map(([key, value]) => (
-                  <Button
-                    key={value}
-                    variant={timeFilter === value ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setTimeFilter(value as TimeFilter)}
-                    className="rounded-full"
-                  >
-                    {key.charAt(0) + key.slice(1).toLowerCase()}
-                  </Button>
-                ))}
-              </div>
+              {activeTab !== "suggestions" && (
+                <div className="flex gap-2">
+                  {Object.entries(TIME_FILTERS).map(([key, value]) => (
+                    <Button
+                      key={value}
+                      variant={timeFilter === value ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setTimeFilter(value as TimeFilter)}
+                      className="rounded-full"
+                    >
+                      {key.charAt(0) + key.slice(1).toLowerCase()}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <Tabs defaultValue="list" className="p-6">
+          <Tabs defaultValue="list" className="p-6" onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="list">Invoice List</TabsTrigger>
               <TabsTrigger value="chart">Expense Chart</TabsTrigger>
@@ -711,12 +737,28 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="datetime-local"
-                      defaultValue={new Date().toISOString().slice(0, 16)}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => date && setSelectedDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <Button type="submit" className="w-full flex justify-center">
                     {isSubmittingExpense ? (
@@ -752,7 +794,7 @@ const Dashboard = () => {
                         </>
                       )}
                       {isUploadingImage && (
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <Loader2 className="h-8 w-8 animate-spin"/>
                       )}
 
                       {!isUploadingImage && image && (
@@ -814,23 +856,31 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <Label htmlFor="date">Date</Label>
-                        <Input
-                                                    id="date"
-                          name="date"
-                          type="datetime-local"
-                          defaultValue={new Date().toISOString().slice(0, 16)}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(date) => date && setSelectedDate(date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </>
                   )}
-
-                  <Button type="submit" className="w-full flex justify-center">
-                    {isSubmittingExpense ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                      "Add Expense"
-                    )}
-                  </Button>
                 </form>
               </TabsContent>
             </Tabs>
