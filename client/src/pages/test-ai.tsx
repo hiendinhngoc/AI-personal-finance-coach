@@ -4,20 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Receipt } from "lucide-react";
+import { Loader2, ImageIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import type { ExpenseItem } from "@shared/schema";
-
-interface VisionResponse {
-  items: ExpenseItem[];
-  summary: string;
-}
 
 export default function TestAI() {
   const [prompt, setPrompt] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [response, setResponse] = useState<VisionResponse | null>(null);
+  const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -55,15 +49,6 @@ export default function TestAI() {
     }
   };
 
-  const getCurrencySymbol = (currency: string) => {
-    switch (currency) {
-      case 'usd': return '$';
-      case 'eur': return '€';
-      case 'vnd': return '₫';
-      default: return currency;
-    }
-  };
-
   return (
     <div className="container mx-auto p-4">
       <Card>
@@ -84,7 +69,7 @@ export default function TestAI() {
             </div>
 
             <div>
-              <Label htmlFor="image">Receipt Image</Label>
+              <Label htmlFor="image">Image (Optional)</Label>
               <Input
                 id="image"
                 type="file"
@@ -105,36 +90,15 @@ export default function TestAI() {
 
             <Button type="submit" disabled={isLoading || (!prompt && !image)}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {image ? "Analyze Receipt" : "Generate Response"}
+              {image ? "Analyze Image" : "Generate Response"}
             </Button>
           </form>
 
           {response && (
-            <div className="mt-6 space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold mb-2">Summary:</h3>
-                <p>{response.summary}</p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-2">Extracted Items:</h3>
-                <div className="space-y-2">
-                  {response.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-3 border rounded-lg flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Receipt className="h-4 w-4 text-muted-foreground" />
-                        <span className="capitalize">{item.category}</span>
-                      </div>
-                      <span className="font-medium">
-                        {getCurrencySymbol(item.currency)}
-                        {item.amount.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            <div className="mt-6">
+              <h3 className="font-semibold mb-2">Response:</h3>
+              <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
+                {response}
               </div>
             </div>
           )}
