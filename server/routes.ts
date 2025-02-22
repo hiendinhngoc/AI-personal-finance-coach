@@ -94,7 +94,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!parseResult.success) {
       return res.status(400).json(parseResult.error);
     }
-    console.log("parseResult.data", parseResult.data);
     const expense = await storage.createExpense(req.user.id, parseResult.data);
 
     // Update remaining budget

@@ -281,6 +281,7 @@ const Dashboard = () => {
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
         receiptUrl: "",
+        date: data.date, // Add the date field here
       };
 
       if (data.invoice) {
@@ -334,18 +335,19 @@ const Dashboard = () => {
   const currentYear = new Date().getFullYear();
 
   // Filter expenses for the current month
-  const currentMonthExpenses = expenses?.filter((expense) => {
-    const expenseDate = new Date(expense.date);
-    return (
-      expenseDate.getMonth() === currentMonth &&
-      expenseDate.getFullYear() === currentYear
-    );
-  }) || [];
+  const currentMonthExpenses =
+    expenses?.filter((expense) => {
+      const expenseDate = new Date(expense.date);
+      return (
+        expenseDate.getMonth() === currentMonth &&
+        expenseDate.getFullYear() === currentYear
+      );
+    }) || [];
 
   // Calculate total monthly expenses
   const totalMonthlyExpenses = currentMonthExpenses.reduce(
     (sum, expense) => sum + expense.amount,
-    0
+    0,
   );
 
   // Calculate remaining budget
@@ -819,7 +821,7 @@ const Dashboard = () => {
                         <>
                           <UploadIcon className="h-8 w8" />
                           <span>Click or drag to upload invoice</span>
-                          <span className="text-sm text-muted-foreground">
+                                                    <span className="text-sm text-muted-foreground">
                             Supports: JPG and PNG
                           </span>
                         </>
@@ -892,11 +894,15 @@ const Dashboard = () => {
                               variant="outline"
                               className={cn(
                                 "w-full justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground"
+                                !selectedDate && "text-muted-foreground",
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                              {selectedDate ? (
+                                format(selectedDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -909,7 +915,10 @@ const Dashboard = () => {
                           </PopoverContent>
                         </Popover>
                       </div>
-                      <Button type="submit" className="w-full flex justify-center">
+                      <Button
+                        type="submit"
+                        className="w-full flex justify-center"
+                      >
                         {isSubmittingExpense ? (
                           <Loader2 className="h-8 w-8 animate-spin" />
                         ) : (
