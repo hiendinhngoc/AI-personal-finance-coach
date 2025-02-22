@@ -39,12 +39,22 @@ const CHART_COLORS = [
 
 type TimeFilter = typeof TIME_FILTERS[keyof typeof TIME_FILTERS];
 
-export default function Dashboard() {
+// Add this helper function at the top level, outside the component
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
+const Dashboard = () => {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
   const [month] = useState(new Date().toISOString().slice(0, 7));
   const { user, logoutMutation } = useAuth();
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   const { data: budget } = useQuery<Budget>({
     queryKey: [`/api/budget/${month}`],
@@ -137,235 +147,94 @@ export default function Dashboard() {
   }, [] as { category: string; value: number }[]) || [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto cursor-pointer" />
-            </Link>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <p className="text-lg text-muted-foreground">
-              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, 
-              {user?.username} ⛅
-            </p>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <BellIcon className="h-4 w-4 mr-2" />
-                  {notifications?.filter(n => !n.read).length || 0}
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Notifications</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  {notifications?.map(notification => (
-                    <div key={notification.id} className="p-4 bg-muted rounded-lg">
-                      <p>{notification.message}</p>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(notification.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Button 
-              variant="outline"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              <LogOutIcon className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {budget ? (
-                <div className="space-y-4">
-                  <p>Total Budget: ${budget.totalAmount}</p>
-                  <p>Remaining: ${budget.remainingAmount}</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p>No budget set for this month</p>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Set Budget
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Set Monthly Budget</DialogTitle>
-                      </DialogHeader>
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const form = e.target as HTMLFormElement;
-                          const amount = parseFloat(form.amount.value);
-                          if (amount > 0) {
-                            createBudgetMutation.mutate(amount);
-                          }
-                        }}
-                        className="space-y-4"
-                      >
-                        <div>
-                          <Label htmlFor="amount">Amount</Label>
-                          <Input
-                            id="amount"
-                            name="amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                        <Button type="submit">Save</Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Dialog open={expenseModalOpen} onOpenChange={setExpenseModalOpen}>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowBudgetModal(true)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Set Budget
+              </button>
+              <button
+                onClick={() => setShowExpenseModal(true)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Add Expense
+              </button>
+              <Dialog>
                 <DialogTrigger asChild>
-                  <Button className="w-full">
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Add Expense
+                  <Button variant="outline">
+                    <BellIcon className="h-4 w-4 mr-2" />
+                    {notifications?.filter(n => !n.read).length || 0}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add New Expense</DialogTitle>
+                    <DialogTitle>Notifications</DialogTitle>
                   </DialogHeader>
-                  <Tabs defaultValue="form" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="form">Manual Entry</TabsTrigger>
-                      <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="form">
-                      <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                        <div>
-                          <Label htmlFor="amount">Amount</Label>
-                          <Input
-                            id="amount"
-                            name="amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="category">Category</Label>
-                          <Select name="category" required>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {EXPENSE_CATEGORIES.map(category => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="date">Date</Label>
-                          <Input
-                            id="date"
-                            name="date"
-                            type="datetime-local"
-                            defaultValue={new Date().toISOString().slice(0, 16)}
-                          />
-                        </div>
-                        <Button type="submit" className="w-full">Add Expense</Button>
-                      </form>
-                    </TabsContent>
-                    <TabsContent value="upload">
-                      <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                        <div>
-                          <Label htmlFor="amount">Amount</Label>
-                          <Input
-                            id="amount"
-                            name="amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="category">Category</Label>
-                          <Select name="category" required>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {EXPENSE_CATEGORIES.map(category => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="date">Date</Label>
-                          <Input
-                            id="date"
-                            name="date"
-                            type="datetime-local"
-                            defaultValue={new Date().toISOString().slice(0, 16)}
-                          />
-                        </div>
-                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                          <input
-                            type="file"
-                            name="invoice"
-                            id="invoice"
-                            className="hidden"
-                            accept="image/*"
-                          />
-                          <Label
-                            htmlFor="invoice"
-                            className="flex flex-col items-center gap-2 cursor-pointer"
-                          >
-                            <UploadIcon className="h-8 w-8" />
-                            <span>Click or drag to upload invoice</span>
-                            <span className="text-sm text-muted-foreground">
-                              Supports: JPG, PNG, PDF
-                            </span>
-                          </Label>
-                        </div>
-                        <Button type="submit" className="w-full">Upload & Process</Button>
-                      </form>
-                    </TabsContent>
-                  </Tabs>
+                  <div className="space-y-4">
+                    {notifications?.map(notification => (
+                      <div key={notification.id} className="p-4 bg-muted rounded-lg">
+                        <p>{notification.message}</p>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(notification.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </DialogContent>
               </Dialog>
-            </CardContent>
-          </Card>
+              <Button 
+                variant="outline"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+              >
+                <LogOutIcon className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              {getGreeting()}, {user?.username}
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-500">Monthly Budget</h3>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">
+                ${budget?.totalAmount.toFixed(2) || 0}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-500">Total Expenses</h3>
+              <p className="mt-1 text-2xl font-semibold text-gray-900">
+                ${expenses?.reduce((acc, expense) => acc + expense.amount, 0).toFixed(2)}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-500">Remaining Budget</h3>
+              <p className={`mt-1 text-2xl font-semibold ${
+                budget?.remainingAmount >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                ${budget?.remainingAmount.toFixed(2) || 0}
+              </p>
+            </div>
+          </div>
         </div>
 
         <Card className="mt-8">
@@ -450,7 +319,170 @@ export default function Dashboard() {
             </Tabs>
           </CardContent>
         </Card>
-      </div>
+      </main>
+
+      {showBudgetModal && (
+        <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Set Monthly Budget
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Set Monthly Budget</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const amount = parseFloat(form.amount.value);
+                if (amount > 0) {
+                  createBudgetMutation.mutate(amount);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              <Button type="submit">Save</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showExpenseModal && (
+        <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
+          <DialogTrigger asChild>
+            <Button className="w-full">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Expense
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Expense</DialogTitle>
+            </DialogHeader>
+            <Tabs defaultValue="form" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="form">Manual Entry</TabsTrigger>
+                <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
+              </TabsList>
+              <TabsContent value="form">
+                <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="amount">Amount</Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select name="category" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPENSE_CATEGORIES.map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="datetime-local"
+                      defaultValue={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">Add Expense</Button>
+                </form>
+              </TabsContent>
+              <TabsContent value="upload">
+                <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="amount">Amount</Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select name="category" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPENSE_CATEGORIES.map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      name="date"
+                      type="datetime-local"
+                      defaultValue={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                    <input
+                      type="file"
+                      name="invoice"
+                      id="invoice"
+                      className="hidden"
+                      accept="image/*"
+                    />
+                    <Label
+                      htmlFor="invoice"
+                      className="flex flex-col items-center gap-2 cursor-pointer"
+                    >
+                      <UploadIcon className="h-8 w-8" />
+                      <span>Click or drag to upload invoice</span>
+                      <span className="text-sm text-muted-foreground">
+                        Supports: JPG, PNG, PDF
+                      </span>
+                    </Label>
+                  </div>
+                  <Button type="submit" className="w-full">Upload & Process</Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
-}
+};
+
+export default Dashboard;
