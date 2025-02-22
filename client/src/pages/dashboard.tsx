@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon } from "lucide-react";
-import type { Budget, Expense, Notification, InsertExpense } from "@shared/schema";
+import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon, Loader2Icon } from "lucide-react";
+import type { Budget, Expense, Notification, InsertExpense, ExtractedExpenseData } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -39,7 +39,6 @@ const CHART_COLORS = [
 
 type TimeFilter = typeof TIME_FILTERS[keyof typeof TIME_FILTERS];
 
-// Add this helper function at the top level, outside the component
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -55,6 +54,9 @@ const Dashboard = () => {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: budget } = useQuery<Budget>({
     queryKey: [`/api/budget/${month}`],
@@ -118,6 +120,51 @@ const Dashboard = () => {
     }
   });
 
+  const uploadExpenseMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('invoice', file);
+      return apiRequest("POST", "/api/expenses/upload", formData);
+    },
+    onSuccess: (data: {extracted?: ExtractedExpenseData}) => {
+      // Update form with extracted data
+      if (data.extracted) {
+        const form = document.querySelector('form') as HTMLFormElement;
+        if (form) {
+          if (data.extracted.amount) {
+            const amountInput = form.querySelector('input[name="amount"]') as HTMLInputElement;
+            if (amountInput) amountInput.value = data.extracted.amount.toString();
+          }
+          if (data.extracted.category) {
+            const categorySelect = form.querySelector('select[name="category"]') as HTMLSelectElement;
+            if (categorySelect) categorySelect.value = data.extracted.category;
+          }
+        }
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/expenses/${timeFilter}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/budget/${month}`] });
+      setShowExpenseModal(false);
+      toast({ title: "Expense processed successfully" });
+    },
+    onError: (error: any) => {
+      console.error('Expense upload error:', error);
+      toast({ 
+        title: "Failed to process expense",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => {
+      setIsProcessing(false);
+      setUploadedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  });
+
   const handleExpenseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -132,7 +179,15 @@ const Dashboard = () => {
     }
   };
 
-  // Group expenses by category for pie chart
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      setIsProcessing(true);
+      uploadExpenseMutation.mutate(file);
+    }
+  };
+
   const chartData = expenses?.reduce((acc, expense) => {
     const existingCategory = acc.find(item => item.category === expense.category);
     if (existingCategory) {
@@ -323,12 +378,6 @@ const Dashboard = () => {
 
       {showBudgetModal && (
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Set Monthly Budget
-            </Button>
-          </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Set Monthly Budget</DialogTitle>
@@ -363,12 +412,6 @@ const Dashboard = () => {
 
       {showExpenseModal && (
         <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
-          <DialogTrigger asChild>
-            <Button className="w-full">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Expense
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
@@ -462,19 +505,42 @@ const Dashboard = () => {
                       id="invoice"
                       className="hidden"
                       accept="image/*"
+                      onChange={handleFileChange}
+                      ref={fileInputRef}
+                      disabled={isProcessing}
                     />
                     <Label
                       htmlFor="invoice"
                       className="flex flex-col items-center gap-2 cursor-pointer"
                     >
-                      <UploadIcon className="h-8 w-8" />
-                      <span>Click or drag to upload invoice</span>
-                      <span className="text-sm text-muted-foreground">
-                        Supports: JPG, PNG, PDF
-                      </span>
+                      {isProcessing ? (
+                        <>
+                          <Loader2Icon className="h-8 w-8 animate-spin" />
+                          <span>Processing invoice...</span>
+                        </>
+                      ) : uploadedFile ? (
+                        <>
+                          <ImageIcon className="h-8 w-8" />
+                          <span>{uploadedFile.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadIcon className="h-8 w-8" />
+                          <span>Click or drag to upload invoice</span>
+                          <span className="text-sm text-muted-foreground">
+                            Supports: JPG, PNG, PDF
+                          </span>
+                        </>
+                      )}
                     </Label>
                   </div>
-                  <Button type="submit" className="w-full">Upload & Process</Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? 'Processing...' : 'Upload & Process'}
+                  </Button>
                 </form>
               </TabsContent>
             </Tabs>

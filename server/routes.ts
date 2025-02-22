@@ -4,6 +4,13 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
 import { ExpenseBudgetInformation, generateCostCuttingMeasureAdviseResponse, generateVisionResponse } from "./llm";
+import multer from "multer";
+
+const upload = multer({
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max file size
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -37,20 +44,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json(parseResult.error);
     }
     const expense = await storage.createExpense(req.user.id, parseResult.data);
-
-    // Update remaining budget
-    const budget = await storage.getBudget(req.user.id, new Date().toISOString().slice(0, 7));
-    if (budget) {
-      await storage.updateBudget(budget.id, budget.remainingAmount - expense.amount);
-      if (budget.remainingAmount - expense.amount < budget.totalAmount * 0.2) {
-        await storage.createNotification(
-          req.user.id,
-          "Warning: You have less than 20% of your budget remaining"
-        );
-      }
-    }
-
     res.status(201).json(expense);
+  });
+
+  app.post("/api/expenses/upload", upload.single('invoice'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Get the base64 encoded image from the request
+      const base64Image = req.file?.buffer.toString('base64');
+      if (!base64Image) {
+        return res.status(400).json({ error: "No image provided" });
+      }
+
+      // Process image with Vision API
+      const expenseData = await generateVisionResponse(base64Image);
+
+      // Create expense if extracted data is valid
+      if (expenseData && Array.isArray(expenseData) && expenseData.length > 0) {
+        const expense = expenseData[0]; // Take first expense item
+        const parseResult = insertExpenseSchema.safeParse({
+          amount: expense.amount || 0,
+          category: expense.category || 'Other',
+          description: `Invoice uploaded on ${new Date().toLocaleDateString()}`,
+          receiptUrl: "", // TODO: Implement file storage
+        });
+
+        if (!parseResult.success) {
+          return res.status(400).json(parseResult.error);
+        }
+
+        const createdExpense = await storage.createExpense(req.user.id, parseResult.data);
+        return res.status(201).json({
+          expense: createdExpense,
+          extracted: expenseData[0]
+        });
+      }
+
+      res.status(400).json({ error: "Could not extract expense data from image" });
+    } catch (error) {
+      console.error("Error processing expense upload:", error);
+      res.status(500).json({ error: "Failed to process expense upload" });
+    }
   });
 
   app.get("/api/notifications", async (req, res) => {
