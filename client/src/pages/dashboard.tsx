@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -267,6 +267,29 @@ const Dashboard = () => {
     },
   });
 
+  const createChatMutation = useMutation({
+    mutationFn: async ({ message, threadId }: { message: string; threadId: number }) => {
+      const response = await apiRequest("POST", "/api/chat", {
+        message,
+        threadId,
+      });
+      return response;
+    },
+    onSuccess: async (data: any) => {
+      const parsedData = await data.json()
+      console.log("parsedData", parsedData.message)
+      toast({ title: "Message sent successfully" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Error sending message", 
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+
   const createExpenseMutation = useMutation({
     mutationFn: async (data: {
       amount: number;
@@ -383,12 +406,22 @@ const Dashboard = () => {
   const sortedGroups = Object.entries(groupedExpenses).sort((a, b) =>
     b[0].localeCompare(a[0])
   );
+  const handleSubmitMessage = async () => {
+    const response = createChatMutation.mutate({ message: "What is my current financial situation?", threadId: 1 });
+
+  };
+
+
 
   useEffect(() => {
     if (image) {
       handleSubmitImage(image);
     }
   }, [image]);
+
+  useEffect(() => {
+    handleSubmitMessage();
+  }, [])
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300'>

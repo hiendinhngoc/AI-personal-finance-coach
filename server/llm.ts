@@ -235,3 +235,5 @@ export async function generateVisionResponse(
     throw new Error(`Response validation failed: ${validationError.message}`);
   }
 }
+
+

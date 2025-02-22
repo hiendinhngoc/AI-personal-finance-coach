@@ -51,6 +51,7 @@ async function formatExpenses(
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+  const agent = await initializeAgent();
 
   app.get("/api/budget/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -233,10 +234,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(weatherData);
     } catch (error) {
       console.error("Error fetching weather:", error);
-      res.status(500).json({ error: "Failed to fetch weather data" });
-      return defaultWeather;
+      res.json(defaultWeather);
     }
   });
+
+  app.post("/api/chat", async (req, res) => {
+    try {
+      // Validate required parameters
+      if (!req.user?.id) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Get parameters from request body instead of query
+      const { message: userMessage, threadId } = req.body;
+
+      if (!userMessage) {
+        return res.status(400).json({ error: "Message parameter is required" });
+      }
+
+      if (!threadId) {
+        return res.status(400).json({ error: "ThreadId parameter is required" });
+      }
+
+      // Use formatExpenses utility to transform the expenses
+      // Get current month integer
+      const month = new Date().getMonth() + 1;
+      const currentFinancialData = await formatExpenses(req.user.id, month.toString());
+
+      // Get response from agent
+      const response = await getMessage(
+        agent,
+        currentFinancialData,
+        parseInt(threadId),
+        userMessage
+      );
+
+      console.log(response)
+
+      if (!response) {
+        return res.status(500).json({ error: "Failed to get response from agent" });
+      }
+
+      res.json({
+        message: response
+      });
+
+    } catch (error) {
+      console.error('Chat API Error:', error);
+      res.status(500).json({
+        error: "An error occurred while processing your request."
+      });
+    }
+  });
+
+
 
   const httpServer = createServer(app);
   return httpServer;
