@@ -44,6 +44,21 @@ export async function generateTextResponse(prompt: string): Promise<string> {
   }
 }
 
+export async function generateTextResponse(prompt: string): Promise<string> {
+  try {
+    const response = await textLLM.invoke([
+      {
+        role: "user",
+        content: prompt,
+      },
+    ]);
+    return response.content as string;
+  } catch (error) {
+    console.error("Error generating text response:", error);
+    throw new Error("Failed to generate text response");
+  }
+}
+
 export async function extractTextFromImage(
   base64Image: string,
   prompt: string = "Analyze this receipt and extract the text.",
@@ -55,16 +70,13 @@ export async function extractTextFromImage(
         content: [
           {
             type: "text",
-            text: `Identify and extract only the following information from the given image:
+            text: `Identify and extractthe following information from the given image:
 
               1. **Amount (if any)** (as a number)
-              2. **Currency** (such as "vnd", "usd", "eur", lowercase)
-              3. **Description** (such as "buying food", "buying bus ticket", "buying utility")
+              2. **Currency (if any)** (such as "vnd", "usd", "eur", lowercase)
+              3. **Description (if any)** (such as "buying food", "buying bus ticket", "buying utility")
               ---
               ### Rules:
-              - Extract only relevant expense items.
-              - Ignore unnecessary text or details that are not related to expenses.
-              - Ensure values are correctly formatted according to the schema.
               - Do NOT include explanations or additional text.
               - Do NOT make up false information
               `,
