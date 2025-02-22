@@ -44,24 +44,9 @@ export async function generateTextResponse(prompt: string): Promise<string> {
   }
 }
 
-export async function generateTextResponse(prompt: string): Promise<string> {
-  try {
-    const response = await textLLM.invoke([
-      {
-        role: "user",
-        content: prompt,
-      },
-    ]);
-    return response.content as string;
-  } catch (error) {
-    console.error("Error generating text response:", error);
-    throw new Error("Failed to generate text response");
-  }
-}
-
 export async function extractTextFromImage(
   base64Image: string,
-  prompt: string = "Analyze this receipt and extract the text.",
+  prompt: string = "Analyze this receipt and extract the text."
 ): Promise<string> {
   try {
     const response = await visionLLM.invoke([
@@ -184,7 +169,7 @@ Rules:
 
 export async function generateVisionResponse(
   base64Image: string,
-  prompt?: string,
+  prompt?: string
 ): Promise<any> {
   try {
     console.log("base64Image", base64Image);
