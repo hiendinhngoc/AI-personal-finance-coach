@@ -1,6 +1,6 @@
 import { User, InsertUser, Budget, InsertBudget, Expense, InsertExpense, Notification, users, budgets, expenses, notifications } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -55,8 +55,10 @@ export class DatabaseStorage implements IStorage {
     const [budget] = await db
       .select()
       .from(budgets)
-      .where(eq(budgets.userId, userId))
-      .where(eq(budgets.month, month));
+      .where(and(
+        eq(budgets.userId, userId),
+        eq(budgets.month, month)
+      ));
     return budget;
   }
 
@@ -85,10 +87,18 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(expenses)
-      .where(eq(expenses.userId, userId));
+      .where(and(
+        eq(expenses.userId, userId),
+        // eq(expenses.date.toString().slice(0, 7), month)
+      ));
   }
 
   async createExpense(userId: number, insertExpense: InsertExpense): Promise<Expense> {
+    // Get current month's budget for the specific user
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const budget = await this.getBudget(userId, currentMonth);
+
+    // Create expense first
     const [expense] = await db
       .insert(expenses)
       .values({
@@ -97,6 +107,7 @@ export class DatabaseStorage implements IStorage {
         date: new Date(),
       })
       .returning();
+
     return expense;
   }
 

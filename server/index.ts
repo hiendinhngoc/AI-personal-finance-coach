@@ -4,6 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
 dotenv.config();
 
+log("Starting server initialization...");
+log(`Environment: ${process.env.NODE_ENV}`);
+
 const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: false, limit: "50mb" }));
@@ -39,6 +42,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  log("Setting up routes...");
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -53,22 +57,24 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
+    log("Setting up Vite development server...");
     await setupVite(app, server);
   } else {
+    log("Setting up static file serving...");
     serveStatic(app);
   }
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client
-  const port = 3000;
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    }
-  );
+  const port = 5000;
+
+  log(`Attempting to start server on port ${port}...`);
+
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`Server is now running on port ${port}`);
+  });
 })();
