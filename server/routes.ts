@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
+import { generateResponse } from "./llm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -36,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json(parseResult.error);
     }
     const expense = await storage.createExpense(req.user.id, parseResult.data);
-    
+
     // Update remaining budget
     const budget = await storage.getBudget(req.user.id, new Date().toISOString().slice(0, 7));
     if (budget) {
@@ -48,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
     }
-    
+
     res.status(201).json(expense);
   });
 
@@ -62,6 +63,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.markNotificationRead(parseInt(req.params.id));
     res.sendStatus(200);
+  });
+
+  app.post("/api/test-ai", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { prompt } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      const response = await generateResponse(prompt);
+      res.json({ response });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate response" });
+    }
   });
 
   const httpServer = createServer(app);
