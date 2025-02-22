@@ -44,7 +44,10 @@ export async function generateTextResponse(prompt: string): Promise<string> {
   }
 }
 
-async function convertImageToText(base64Image: string): Promise<string> {
+export async function extractTextFromImage(
+  base64Image: string,
+  prompt: string = "Analyze this receipt and extract the text.",
+): Promise<string> {
   try {
     const response = await visionLLM.invoke([
       {
@@ -52,27 +55,37 @@ async function convertImageToText(base64Image: string): Promise<string> {
         content: [
           {
             type: "text",
-            text: "Read this receipt and convert all content to text. Include all details: store name, date, items with prices, subtotals, taxes, and final total. Format numbers consistently and preserve currency symbols."
+            text: `Identify and extract only the following information from the given image:
+
+              1. **Amount** (as a number)
+              2. **Currency** (such as "vnd", "usd", "eur", lowercase)
+              3. **Category** (such as "food", "transportation", "utility", "rent", "health", lowercase)
+              ---
+              ### Rules:
+              - Extract only relevant expense items.
+              - Ignore unnecessary text or details that are not related to expenses.
+              - Ensure values are correctly formatted according to the schema.
+              - Do NOT include explanations or additional text.
+              - Do NOT make up false information
+              `,
           },
           {
             type: "image_url",
             image_url: {
-              url: `data:image/jpeg;base64,${base64Image}`
-            }
-          }
+              url: `data:image/jpeg;base64,${base64Image}`,
+            },
+          },
         ],
       },
     ]);
-
-    console.log('Extracted text from image:', response.content);
     return response.content as string;
-  } catch (error: any) {
-    console.error('Error converting image to text:', error);
-    throw new Error('Failed to convert image to text: ' + error.message);
+  } catch (error) {
+    console.error("Error extracting text from image:", error);
+    throw new Error("Failed to extract text from image.");
   }
 }
 
-async function extractExpenseItems(text: string): Promise<ExpenseItem[]> {
+export async function parseExpenseItems(extractedText: string): Promise<any> {
   try {
     const parser = new JsonOutputParser<ExpenseItem[]>();
     const formatInstructions = `Respond with a valid JSON array of expense objects in the following format:
@@ -96,48 +109,79 @@ Rules:
   - Category as one of: food, transportation, utility, rent, health (lowercase)
 `;
 
-    const prompt_template = ChatPromptTemplate.fromMessages([
-      [
-        "system",
-        `You are a receipt analyzer. Your task is to extract expense information from receipts.
-${formatInstructions}`,
-      ],
-      [
-        "user",
-        `Analyze this receipt text and extract all expense items. Group similar items if needed.
-
-Receipt text:
-${text}`,
-      ],
-    ]);
-
-    const chain = prompt_template.pipe(textLLM).pipe(parser);
-
-    console.log("Running chain to extract expense items...");
-    const structuredData = await chain.invoke({});
-    console.log("Generated structured data:", structuredData);
-
-    return structuredData.map(item => expenseItemSchema.parse(item));
-  } catch (error: any) {
-    console.error('Error extracting expense items:', error);
-    throw new Error('Failed to extract expense items: ' + error.message);
+    const messages = [
+      {
+        role: "system",
+        content: `You are a receipt analyzer. Your task is to extract structured expense data from plain text as specified in JSON SCHEMA.
+      
+      ---
+      JSON SCHEMA
+      ${formatInstructions}
+      
+      ### Instructions:
+       - Extract only relevant data.
+       - Ensure all values strictly match the schema's data types and format.
+       - Do NOT add any extra information or explanations.
+       - Respond ONLY with a valid JSON object that conforms to the schema.
+    `,
+      },
+      {
+        role: "user",
+        content: extractedText,
+      },
+    ];
+    const parsedResponse = await textLLM.invoke(messages);
+    const content = parsedResponse.content as string;
+    console.log("Raw response:", content);
+    let parsedContent = {};
+    try {
+      parsedContent = JSON.parse(content);
+    } catch {
+      // Call text_llm to fix error json content
+      const fixedContent = await textLLM.invoke([
+        {
+          role: "system",
+          content: `You are an expert in extracting structured data from raw text.Your task is to convert the given RAW DATA into a JSON object that follows the specified schema.
+      
+       ---
+       ### JSON SCHEMA:
+       ${formatInstructions}
+      
+       ### Instructions:
+       - Extract only relevant data.
+       - Ensure all values strictly match the schema's data types and format.
+       - Do NOT add any extra information or explanations.
+       - Respond ONLY with a valid JSON object that conforms to the schema.
+       `,
+        },
+        {
+          role: "user",
+          content: `### RAW DATA:
+       ${content}`,
+        },
+      ]);
+      console.log("Fixed content:", fixedContent);
+      parsedContent = JSON.parse(fixedContent.content as string);
+    }
+    return parsedContent;
+  } catch (error) {
+    console.error("Error parsing expense items:", error);
+    throw new Error("Failed to parse expense items.");
   }
 }
 
 export async function generateVisionResponse(
   base64Image: string,
   prompt?: string,
-): Promise<ExpenseItem[]> {
+): Promise<any> {
   try {
-    // Step 1: Convert image to text using visionLLM
-    const extractedText = await convertImageToText(base64Image);
-
-    // Step 2: Extract structured data from text using textLLM
-    const expenseItems = await extractExpenseItems(extractedText);
-
-    return expenseItems;
-  } catch (error: any) {
-    console.error("Error in vision response pipeline:", error);
-    throw new Error(error.message || "Failed to generate vision response");
+    const extractedText = await extractTextFromImage(base64Image, prompt);
+    console.log("Extracted Text:", extractedText);
+    const parsedExpense = await parseExpenseItems(extractedText);
+    console.log("parsedExpense:", parsedExpense);
+    return parsedExpense;
+  } catch (validationError: any) {
+    console.error("Validation Error:", validationError);
+    throw new Error(`Response validation failed: ${validationError.message}`);
   }
 }

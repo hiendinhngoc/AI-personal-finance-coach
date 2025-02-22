@@ -1,11 +1,21 @@
-import { pgTable, text, serial, integer, boolean, timestamp, doublePrecision } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+  doublePrecision,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const expenseItemSchema = z.object({
   amount: z.number().optional(),
-  currency: z.enum(['vnd', 'usd', 'eur']).optional(),
-  category: z.enum(['food', 'transportation', 'utility', 'rent', 'health']).optional()
+  currency: z.enum(["vnd", "usd", "eur"]).optional(),
+  category: z
+    .enum(["food", "transportation", "utility", "rent", "health"])
+    .optional(),
 });
 
 export type ExpenseItem = z.infer<typeof expenseItemSchema>;
