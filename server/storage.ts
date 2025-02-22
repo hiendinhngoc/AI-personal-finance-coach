@@ -89,7 +89,7 @@ export class DatabaseStorage implements IStorage {
       .from(expenses)
       .where(and(
         eq(expenses.userId, userId),
-        eq(expenses.date.toString().slice(0, 7), month)
+        // eq(expenses.date.toString().slice(0, 7), month)
       ));
   }
 
