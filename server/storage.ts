@@ -1,133 +1,131 @@
-import { User, InsertUser, Budget, InsertBudget, Expense, InsertExpense, Notification } from "@shared/schema";
+import { User, InsertUser, Budget, InsertBudget, Expense, InsertExpense, Notification, users, budgets, expenses, notifications } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getBudget(userId: number, month: string): Promise<Budget | undefined>;
   createBudget(userId: number, budget: InsertBudget): Promise<Budget>;
   updateBudget(id: number, remainingAmount: number): Promise<Budget>;
-  
+
   getExpenses(userId: number, month: string): Promise<Expense[]>;
   createExpense(userId: number, expense: InsertExpense): Promise<Expense>;
-  
+
   getNotifications(userId: number): Promise<Notification[]>;
   createNotification(userId: number, message: string): Promise<Notification>;
   markNotificationRead(id: number): Promise<void>;
-  
+
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private budgets: Map<number, Budget>;
-  private expenses: Map<number, Expense>;
-  private notifications: Map<number, Notification>;
-  private currentId: number;
+export class DatabaseStorage implements IStorage {
   readonly sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.budgets = new Map();
-    this.expenses = new Map();
-    this.notifications = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getBudget(userId: number, month: string): Promise<Budget | undefined> {
-    return Array.from(this.budgets.values()).find(
-      (budget) => budget.userId === userId && budget.month === month,
-    );
+    const [budget] = await db
+      .select()
+      .from(budgets)
+      .where(eq(budgets.userId, userId))
+      .where(eq(budgets.month, month));
+    return budget;
   }
 
   async createBudget(userId: number, insertBudget: InsertBudget): Promise<Budget> {
-    const id = this.currentId++;
-    const budget: Budget = {
-      ...insertBudget,
-      id,
-      userId,
-      remainingAmount: insertBudget.totalAmount,
-    };
-    this.budgets.set(id, budget);
+    const [budget] = await db
+      .insert(budgets)
+      .values({
+        ...insertBudget,
+        userId,
+        remainingAmount: insertBudget.totalAmount,
+      })
+      .returning();
     return budget;
   }
 
   async updateBudget(id: number, remainingAmount: number): Promise<Budget> {
-    const budget = this.budgets.get(id);
-    if (!budget) throw new Error("Budget not found");
-    const updatedBudget = { ...budget, remainingAmount };
-    this.budgets.set(id, updatedBudget);
-    return updatedBudget;
+    const [budget] = await db
+      .update(budgets)
+      .set({ remainingAmount })
+      .where(eq(budgets.id, id))
+      .returning();
+    return budget;
   }
 
   async getExpenses(userId: number, month: string): Promise<Expense[]> {
-    return Array.from(this.expenses.values()).filter(
-      (expense) => expense.userId === userId && 
-        new Date(expense.date).toISOString().startsWith(month),
-    );
+    return db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.userId, userId));
   }
 
   async createExpense(userId: number, insertExpense: InsertExpense): Promise<Expense> {
-    const id = this.currentId++;
-    const expense: Expense = {
-      ...insertExpense,
-      id,
-      userId,
-      date: new Date(),
-    };
-    this.expenses.set(id, expense);
+    const [expense] = await db
+      .insert(expenses)
+      .values({
+        ...insertExpense,
+        userId,
+        date: new Date(),
+      })
+      .returning();
     return expense;
   }
 
   async getNotifications(userId: number): Promise<Notification[]> {
-    return Array.from(this.notifications.values()).filter(
-      (notification) => notification.userId === userId,
-    );
+    return db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId));
   }
 
   async createNotification(userId: number, message: string): Promise<Notification> {
-    const id = this.currentId++;
-    const notification: Notification = {
-      id,
-      userId,
-      message,
-      read: false,
-      date: new Date(),
-    };
-    this.notifications.set(id, notification);
+    const [notification] = await db
+      .insert(notifications)
+      .values({
+        userId,
+        message,
+        read: false,
+        date: new Date(),
+      })
+      .returning();
     return notification;
   }
 
   async markNotificationRead(id: number): Promise<void> {
-    const notification = this.notifications.get(id);
-    if (!notification) throw new Error("Notification not found");
-    this.notifications.set(id, { ...notification, read: true });
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
