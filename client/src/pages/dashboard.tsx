@@ -56,6 +56,15 @@ import type {
 } from "@shared/schema";
 import type { LucideIcon } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "@heroicons/react/24/solid";
+import cn from "classnames";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -121,7 +130,7 @@ type TimeFilter = (typeof TIME_FILTERS)[keyof typeof TIME_FILTERS];
 
 const getGreeting = () => {
   const hour = new Date().getHours();
-  const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const day = new Date().toLocaleDateString("en-US", { weekday: "long" });
   if (hour < 12) return `Good morning • ${day}`;
   if (hour < 17) return `Good afternoon • ${day}`;
   return `Good evening • ${day}`;
@@ -169,6 +178,8 @@ const Dashboard = () => {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState("list");
 
   const { data: weather } = useQuery({
     queryKey: ["weather"],
@@ -196,7 +207,10 @@ const Dashboard = () => {
   const handleSubmitImage = async (image: string) => {
     setisUploadingImage(true);
     try {
-      const res = await apiRequest("POST", "/api/test-ai", { prompt: "", image });
+      const res = await apiRequest("POST", "/api/test-ai", {
+        prompt: "",
+        image,
+      });
       const data = await res.json();
       const response = data.response;
       if (response && response[0]) {
@@ -264,7 +278,6 @@ const Dashboard = () => {
     onSuccess: async (data: any) => {
       const parsedData = await data.json()
       console.log("parsedData", parsedData.message)
-
       toast({ title: "Message sent successfully" });
     },
     onError: (error) => {
@@ -291,6 +304,7 @@ const Dashboard = () => {
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
         receiptUrl: "",
+        date: data.date, // Add the date field here
       };
 
       if (data.invoice) {
@@ -327,13 +341,41 @@ const Dashboard = () => {
     const form = e.target as HTMLFormElement;
     const amount = parseFloat(form.amount.value);
     const category = form.category.value;
-    const date = form.date.value || new Date().toISOString();
 
     if (amount > 0 && category) {
-      createExpenseMutation.mutate({ amount, category, date });
+      createExpenseMutation.mutate({
+        amount,
+        category,
+        date: selectedDate.toISOString(),
+      });
       form.reset();
+      setSelectedDate(new Date());
     }
   };
+
+  // Get the current month and year for filtering
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  // Filter expenses for the current month
+  const currentMonthExpenses =
+    expenses?.filter((expense) => {
+      const expenseDate = new Date(expense.date);
+      return (
+        expenseDate.getMonth() === currentMonth &&
+        expenseDate.getFullYear() === currentYear
+      );
+    }) || [];
+
+  // Calculate total monthly expenses
+  const totalMonthlyExpenses = currentMonthExpenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0,
+  );
+
+  // Calculate remaining budget
+  const totalBudget = budget?.totalAmount || 0;
+  const remainingBudget = totalBudget - totalMonthlyExpenses;
 
   const chartData = useMemo(() => 
     expenses?.reduce(
@@ -354,20 +396,22 @@ const Dashboard = () => {
       [] as { category: string; value: number }[],
     ) || [], [expenses]);
 
-  const groupedExpenses = expenses?.reduce((groups, expense) => {
-    const date = new Date(expense.date);
-    const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(expense);
-    return groups;
-  }, {} as Record<string, Expense[]>) || {};
+  const groupedExpenses = useMemo(() => expenses?.reduce(
+      (groups, expense) => {
+        const date = new Date(expense.date);
+        const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+        if (!groups[key]) {
+          groups[key] = [];
+        }
+        groups[key].push(expense);
+        return groups;
+      },
+      {} as Record<string, Expense[]>,
+    ) || [],[expenses]);
 
   const sortedGroups = Object.entries(groupedExpenses).sort((a, b) =>
-    b[0].localeCompare(a[0])
+    b[0].localeCompare(a[0]),
   );
-
   const handleSubmitMessage = async () => {
     const response = createChatMutation.mutate({ message: "What is my current financial situation?", threadId: 1 });
 
@@ -433,9 +477,10 @@ const Dashboard = () => {
                   }}
                 >
                   <BellIcon className="h-4 w-4 group-hover:animate-bounce" />
-                  {notifications && notifications.filter((n) => !n.read).length > 0 && (
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300" />
-                  )}
+                  {notifications &&
+                    notifications.filter((n) => !n.read).length > 0 && (
+                      <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300" />
+                    )}
                 </Button>
               </div>
 
@@ -462,7 +507,10 @@ const Dashboard = () => {
               {weather && (
                 <>
                   {(() => {
-                    const WeatherIcon = WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] || CloudIcon;
+                    const WeatherIcon =
+                      WEATHER_ICONS[
+                        weather.main as keyof typeof WEATHER_ICONS
+                      ] || CloudIcon;
                     return <WeatherIcon className="h-5 w-5" />;
                   })()}
                   <span>{weather.description}</span>
@@ -476,9 +524,7 @@ const Dashboard = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div
-            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
-          >
+          <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Monthly Budget
             </h3>
@@ -487,33 +533,27 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <div
-            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
-          >
+          <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Total Expenses
+              Total Expenses (This Month)
             </h3>
             <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              {formatCurrency(
-                expenses?.reduce((acc, expense) => acc + expense.amount, 0) || 0,
-              )}
+              {formatCurrency(totalMonthlyExpenses)}
             </p>
           </div>
 
-          <div
-            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
-          >
+          <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Remaining Budget
             </h3>
             <p
               className={`mt-2 text-3xl font-bold ${
-                (budget?.remainingAmount || 0) >= 0
+                remainingBudget >= 0
                   ? "bg-gradient-to-r from-green-400 to-green-600"
                   : "bg-gradient-to-r from-red-400 to-red-600 animate-pulse"
               } bg-clip-text text-transparent`}
             >
-              {formatCurrency(budget?.remainingAmount || 0)}
+              {formatCurrency(remainingBudget)}
             </p>
           </div>
         </div>
@@ -522,23 +562,29 @@ const Dashboard = () => {
           <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Expenses & Invoices</h2>
-              <div className="flex gap-2">
-                {Object.entries(TIME_FILTERS).map(([key, value]) => (
-                  <Button
-                    key={value}
-                    variant={timeFilter === value ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setTimeFilter(value as TimeFilter)}
-                    className="rounded-full"
-                  >
-                    {key.charAt(0) + key.slice(1).toLowerCase()}
-                  </Button>
-                ))}
-              </div>
+              {activeTab !== "suggestions" && (
+                <div className="flex gap-2">
+                  {Object.entries(TIME_FILTERS).map(([key, value]) => (
+                    <Button
+                      key={value}
+                      variant={timeFilter === value ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setTimeFilter(value as TimeFilter)}
+                      className="rounded-full"
+                    >
+                      {key.charAt(0) + key.slice(1).toLowerCase()}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <Tabs defaultValue="list" className="p-6">
+          <Tabs
+            defaultValue="list"
+            className="p-6"
+            onValueChange={setActiveTab}
+          >
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="list">Invoice List</TabsTrigger>
               <TabsTrigger value="chart">Expense Chart</TabsTrigger>
@@ -549,9 +595,9 @@ const Dashboard = () => {
               {sortedGroups.map(([monthYear, monthExpenses]) => (
                 <div key={monthYear} className="space-y-4">
                   <h3 className="text-lg font-semibold px-6">
-                    {new Date(monthYear).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long'
+                    {new Date(monthYear).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
                     })}
                   </h3>
 
@@ -564,7 +610,10 @@ const Dashboard = () => {
 
                   <div className="space-y-2">
                     {monthExpenses.map((expense) => {
-                      const categoryConfig = CATEGORY_CONFIG[expense.category as keyof typeof CATEGORY_CONFIG];
+                      const categoryConfig =
+                        CATEGORY_CONFIG[
+                          expense.category as keyof typeof CATEGORY_CONFIG
+                        ];
                       const CategoryIcon = categoryConfig.icon;
 
                       return (
@@ -596,9 +645,7 @@ const Dashboard = () => {
                           </div>
 
                           <div className="flex items-center justify-end">
-                            <span
-                              className="text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                            >
+                            <span className="text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               USD
                             </span>
                           </div>
@@ -628,18 +675,25 @@ const Dashboard = () => {
               <div className="prose dark:prose-invert max-w-none">
                 {suggestions ? (
                   <>
-                    <div className="markdown-content" dangerouslySetInnerHTML={{ __html: suggestions }} />
+                    <div
+                      className="markdown-content"
+                      dangerouslySetInnerHTML={{ __html: suggestions }}
+                    />
 
                     <div className="mt-8 grid grid-cols-2 gap-6">
                       <div className="border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">Top Saving Category</h3>
+                        <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
+                          Top Saving Category
+                        </h3>
                         <p className="text-green-600 dark:text-green-300">
                           Housing expenses are lower than usual this month
                         </p>
                       </div>
 
                       <div className="border border-red-200 bg-red-50/50 dark:bg-red-900/20 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">Watch Out</h3>
+                        <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">
+                          Watch Out
+                        </h3>
                         <p className="text-red-600 dark:text-red-300">
                           Entertainment spending is 30% higher than last month
                         </p>
@@ -653,7 +707,6 @@ const Dashboard = () => {
                 )}
               </div>
             </TabsContent>
-
           </Tabs>
         </div>
       </main>
@@ -745,12 +798,32 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="datetime-local"
-                      defaultValue={new Date().toISOString().slice(0, 16)}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? (
+                            format(selectedDate, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => date && setSelectedDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <Button type="submit" className="w-full flex justify-center">
                     {isSubmittingExpense ? (
@@ -778,9 +851,9 @@ const Dashboard = () => {
                     >
                       {!isUploadingImage && !image && (
                         <>
-                          <UploadIcon className="h-8 w-8" />
+                          <UploadIcon className="h-8 w8" />
                           <span>Click or drag to upload invoice</span>
-                          <span className="text-sm text-muted-foreground">
+                                                    <span className="text-sm text-muted-foreground">
                             Supports: JPG and PNG
                           </span>
                         </>
@@ -830,7 +903,6 @@ const Dashboard = () => {
                         <Label htmlFor="category">Category</Label>
                         <Select
                           name="category"
-                          required
                           value={selectedCategory}
                           onValueChange={setSelectedCategory}
                         >
@@ -848,23 +920,45 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <Label htmlFor="date">Date</Label>
-                        <Input
-                                                    id="date"
-                          name="date"
-                          type="datetime-local"
-                          defaultValue={new Date().toISOString().slice(0, 16)}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground",
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {selectedDate ? (
+                                format(selectedDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(date) => date && setSelectedDate(date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
+                      <Button
+                        type="submit"
+                        className="w-full flex justify-center"
+                      >
+                        {isSubmittingExpense ? (
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                          "Add Expense"
+                        )}
+                      </Button>
                     </>
                   )}
-
-                  <Button type="submit" className="w-full flex justify-center">
-                    {isSubmittingExpense ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                      "Add Expense"
-                    )}
-                  </Button>
                 </form>
               </TabsContent>
             </Tabs>

@@ -4,11 +4,12 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
 import {
+  ExpenseDetail,
   ExpenseBudgetInformation,
   generateCostCuttingMeasureAdviseResponse,
   generateVisionResponse,
   textLLM,
-  reformatJsonResponse
+  reformatJsonResponse,
 } from "./llm";
 import { formatExpenses } from "./utils";
 import { initializeAgent, getMessage } from "./agent";
@@ -35,8 +36,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/expenses/analysis/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const formattedExpenses = await formatExpenses(req.user.id, req.params.month);
-    const costCuttingMeasures = await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
+    const formattedExpenses = await formatExpenses(
+      req.user.id,
+      req.params.month,
+    );
+    const costCuttingMeasures =
+      await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
     res.json(costCuttingMeasures);
   });
 
@@ -126,8 +131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       description: "Sunny with no clouds",
       temp: 72.5,
       humidity: 60,
-      windSpeed: 5.2
-    }
+      windSpeed: 5.2,
+    };
     try {
       const formatInstructions = `
       {
@@ -143,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       - temp: Temperature in Fahrenheit as a number.
       - humidity: Humidity percentage as a number.
       - windSpeed: Wind speed in mph as a number.
-      `
+      `;
       const response = await textLLM.invoke([
         {
           role: "system",
@@ -154,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           ---
           OUTPUT REQUIREMENTS:
-          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`
+          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`,
         },
         {
           role: "user",
@@ -162,11 +167,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       ]);
       const content = response.content as string;
-      let weatherData = defaultWeather
+      let weatherData = defaultWeather;
       try {
         weatherData = JSON.parse(content as string);
       } catch (e) {
-        const fixedContent = await reformatJsonResponse(formatInstructions, content);
+        const fixedContent = await reformatJsonResponse(
+          formatInstructions,
+          content,
+        );
         weatherData = JSON.parse(fixedContent);
       }
       res.json(weatherData);
