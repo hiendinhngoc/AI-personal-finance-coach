@@ -90,12 +90,12 @@ export async function parseExpenseItems(extractedText: string): Promise<any> {
   {
     "amount": 123.45,
     "currency": "usd",
-    "category": "food"
+    "category": "Food"
   },
   {
     "amount": 45.67,
     "currency": "vnd",
-    "category": "transportation"
+    "category": "Transportation"
   }
 ]
 
@@ -103,7 +103,7 @@ Rules:
 - Each item must have:
   - Amount as a number
   - Currency as one of: vnd, usd, eur (lowercase)
-  - Category as one of: food, transportation, utility, rent, health (lowercase)
+  - Category as one of:  Food , Transportation , Housing , Entertainment , or Other 
 `;
 
     const messages = [

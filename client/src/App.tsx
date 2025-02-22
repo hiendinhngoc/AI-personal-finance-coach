@@ -9,6 +9,7 @@ import HomePage from "@/pages/home-page";
 import Dashboard from "@/pages/dashboard";
 import TestAI from "@/pages/test-ai";
 import { ProtectedRoute } from "./lib/protected-route";
+import { ThemeProvider } from "@/hooks/use-theme";
 
 function Router() {
   return (
@@ -24,12 +25,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
