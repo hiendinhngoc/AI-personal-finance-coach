@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,14 @@ const TIME_FILTERS = {
   WEEK: "week",
   MONTH: "month"
 } as const;
+
+const CHART_COLORS = [
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#96CEB4",
+  "#FFEEAD"
+];
 
 type TimeFilter = typeof TIME_FILTERS[keyof typeof TIME_FILTERS];
 
@@ -114,10 +122,19 @@ export default function Dashboard() {
     }
   };
 
-  const chartData = expenses?.map(expense => ({
-    date: new Date(expense.date).toLocaleDateString(),
-    amount: expense.amount
-  })) || [];
+  // Group expenses by category for pie chart
+  const chartData = expenses?.reduce((acc, expense) => {
+    const existingCategory = acc.find(item => item.category === expense.category);
+    if (existingCategory) {
+      existingCategory.value += expense.amount;
+    } else {
+      acc.push({
+        category: expense.category,
+        value: expense.amount
+      });
+    }
+    return acc;
+  }, [] as { category: string; value: number }[]) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -400,21 +417,34 @@ export default function Dashboard() {
                 </div>
               </TabsContent>
               <TabsContent value="chart">
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="amount"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div className="h-[400px] flex items-center justify-center">
+                  {chartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          dataKey="value"
+                          nameKey="category"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={150}
+                          label={({ category, percent }) => 
+                            `${category}: ${(percent * 100).toFixed(0)}%`
+                          }
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell 
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-muted-foreground">No expenses to display</p>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
