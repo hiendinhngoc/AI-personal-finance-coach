@@ -71,7 +71,6 @@ const TIME_FILTERS = {
   MONTH: "month",
 } as const;
 
-// Add gradient styles for categories
 const CATEGORY_CONFIG = {
   Transportation: {
     color: "#3B82F6",
@@ -110,27 +109,24 @@ const CATEGORY_CONFIG = {
   },
 } as const;
 
-// Replace existing CHART_COLORS with the new category colors
 const CHART_COLORS = Object.values(CATEGORY_CONFIG).map(
   (config) => config.color,
 );
 
-// Replace existing CATEGORY_ICONS with the new configuration
 const CATEGORY_ICONS = Object.fromEntries(
   Object.entries(CATEGORY_CONFIG).map(([key, value]) => [key, value.icon]),
 ) as Record<string, LucideIcon>;
 
 type TimeFilter = (typeof TIME_FILTERS)[keyof typeof TIME_FILTERS];
 
-// Add this helper function at the top level, outside the component
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  if (hour < 12) return `Good morning • ${day}`;
+  if (hour < 17) return `Good afternoon • ${day}`;
+  return `Good evening • ${day}`;
 };
 
-// Add a currency formatter helper
 const formatCurrency = (amount: number, currency = "USD") => {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -139,7 +135,6 @@ const formatCurrency = (amount: number, currency = "USD") => {
   }).format(amount);
 };
 
-// Add a date formatter helper
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString("en-US", {
     year: "numeric",
@@ -148,14 +143,11 @@ const formatDate = (date: string) => {
   });
 };
 
-// Function to convert VND to USD (or your preferred currency)
 const convertVNDtoUSD = (vndAmount: number) => {
-  // Using approximate conversion rate (you might want to use an API for real-time rates)
-  const rate = 24000; // 1 USD = ~24000 VND
+  const rate = 24000; 
   return (vndAmount / rate).toFixed(2);
 };
 
-// Add weather icon mapping
 const WEATHER_ICONS = {
   Clear: SunIcon,
   Clouds: CloudIcon,
@@ -183,7 +175,10 @@ const Dashboard = () => {
     queryFn: () => fetch("/api/weather").then((res) => res.json()),
   });
 
-  console.log(amount, selectedCategory);
+  const { data: suggestions } = useQuery({
+    queryKey: [`/api/expenses/analysis/${month}`],
+  });
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -201,21 +196,18 @@ const Dashboard = () => {
   const handleSubmitImage = async (image: string) => {
     setisUploadingImage(true);
     try {
-      const res = await apiRequest("POST", "/api/test-ai", { prompt, image });
+      const res = await apiRequest("POST", "/api/test-ai", { prompt: "", image });
       const data = await res.json();
       const response = data.response;
       if (response && response[0]) {
         const { amount: responseAmount, currency, category } = response[0];
 
-        // Todo: Currency convert
-        // Convert amount if currency is VND
         if (currency.toLowerCase() === "vnd") {
           setAmount(convertVNDtoUSD(responseAmount));
         } else {
           setAmount(responseAmount.toString());
         }
 
-        // Set category if it's not 'none'
         if (category && EXPENSE_CATEGORIES.includes(category)) {
           setSelectedCategory(category);
         } else {
@@ -274,17 +266,15 @@ const Dashboard = () => {
         amount: data.amount,
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
-        receiptUrl: "", // Will be updated by backend if invoice is present
+        receiptUrl: "", 
       };
 
-      // If there's an invoice, append it to formData
       if (data.invoice) {
         formData.append("invoice", data.invoice);
         formData.append("expense", JSON.stringify(expenseData));
         return apiRequest("POST", "/api/expenses/upload", formData);
       }
 
-      // If no invoice, send expense data directly
       return apiRequest("POST", "/api/expenses", expenseData);
     },
     onSuccess: () => {
@@ -321,7 +311,6 @@ const Dashboard = () => {
     }
   };
 
-  // Group expenses by category for pie chart
   const chartData =
     expenses?.reduce(
       (acc, expense) => {
@@ -341,6 +330,21 @@ const Dashboard = () => {
       [] as { category: string; value: number }[],
     ) || [];
 
+  const groupedExpenses = expenses?.reduce((groups, expense) => {
+    const date = new Date(expense.date);
+    const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(expense);
+    return groups;
+  }, {} as Record<string, Expense[]>) || {};
+
+  const sortedGroups = Object.entries(groupedExpenses).sort((a, b) =>
+    b[0].localeCompare(a[0])
+  );
+
+
   useEffect(() => {
     if (image) {
       handleSubmitImage(image);
@@ -349,7 +353,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-      {/* Modern Header */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="h-16 flex items-center justify-between">
@@ -371,8 +374,7 @@ const Dashboard = () => {
 
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                           dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
                 onClick={() => setShowBudgetModal(true)}
               >
                 <PlusIcon className="h-4 w-4" />
@@ -381,8 +383,7 @@ const Dashboard = () => {
 
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                           dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
                 onClick={() => setShowExpenseModal(true)}
               >
                 <PlusIcon className="h-4 w-4" />
@@ -392,24 +393,21 @@ const Dashboard = () => {
               <div className="relative">
                 <Button
                   variant="ghost"
-                  className="relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                             dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                  className="relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent group"
                   onClick={() => {
                     /* handle notifications */
                   }}
                 >
-                  <BellIcon className="h-4 w-4" />
-                  {notifications &&
-                    notifications.filter((n) => !n.read).length > 0 && (
-                      <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse" />
-                    )}
+                  <BellIcon className="h-4 w-4 group-hover:animate-bounce" />
+                  {notifications && notifications.filter((n) => !n.read).length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300" />
+                  )}
                 </Button>
               </div>
 
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                           dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
                 onClick={() => logoutMutation.mutate()}
               >
                 <LogOutIcon className="h-4 w-4" />
@@ -420,7 +418,6 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Weather and Greeting Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -431,10 +428,7 @@ const Dashboard = () => {
               {weather && (
                 <>
                   {(() => {
-                    const WeatherIcon =
-                      WEATHER_ICONS[
-                        weather.main as keyof typeof WEATHER_ICONS
-                      ] || CloudIcon;
+                    const WeatherIcon = WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] || CloudIcon;
                     return <WeatherIcon className="h-5 w-5" />;
                   })()}
                   <span>{weather.description}</span>
@@ -447,12 +441,9 @@ const Dashboard = () => {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Budget Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div
-            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 
-                         shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
-                         hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
+            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Monthly Budget
@@ -463,25 +454,20 @@ const Dashboard = () => {
           </div>
 
           <div
-            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 
-                         shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
-                         hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
+            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Total Expenses
             </h3>
             <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               {formatCurrency(
-                expenses?.reduce((acc, expense) => acc + expense.amount, 0) ||
-                  0,
+                expenses?.reduce((acc, expense) => acc + expense.amount, 0) || 0,
               )}
             </p>
           </div>
 
           <div
-            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 
-                         shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
-                         hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
+            className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Remaining Budget
@@ -498,7 +484,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Expenses & Invoices Section */}
         <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden">
           <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
@@ -520,73 +505,75 @@ const Dashboard = () => {
           </div>
 
           <Tabs defaultValue="list" className="p-6">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="list">Invoice List</TabsTrigger>
               <TabsTrigger value="chart">Expense Chart</TabsTrigger>
+              <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
             </TabsList>
 
             <TabsContent value="list" className="space-y-4">
-              <div className="grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">
-                <div>Category</div>
-                <div>Date</div>
-                <div className="text-right">Amount</div>
-                <div className="text-right">Currency</div>
-              </div>
+              {sortedGroups.map(([monthYear, monthExpenses]) => (
+                <div key={monthYear} className="space-y-4">
+                  <h3 className="text-lg font-semibold px-6">
+                    {new Date(monthYear).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long'
+                    })}
+                  </h3>
 
-              <div className="space-y-2">
-                {expenses?.map((expense) => {
-                  const categoryConfig =
-                    CATEGORY_CONFIG[
-                      expense.category as keyof typeof CATEGORY_CONFIG
-                    ];
-                  const CategoryIcon = categoryConfig.icon;
+                  <div className="grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <div>Category</div>
+                    <div>Date</div>
+                    <div className="text-right">Amount</div>
+                    <div className="text-right">Currency</div>
+                  </div>
 
-                  return (
-                    <div
-                      key={expense.id}
-                      className="group grid grid-cols-4 gap-4 p-4 rounded-xl 
-                                backdrop-blur-sm bg-white/40 dark:bg-gray-800/40
-                                hover:bg-white/60 dark:hover:bg-gray-800/60
-                                transition-all duration-300 transform hover:scale-[1.02]
-                                hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
-                    >
-                      <div className="flex items-center gap-2">
+                  <div className="space-y-2">
+                    {monthExpenses.map((expense) => {
+                      const categoryConfig = CATEGORY_CONFIG[expense.category as keyof typeof CATEGORY_CONFIG];
+                      const CategoryIcon = categoryConfig.icon;
+
+                      return (
                         <div
-                          className={`flex items-center gap-2 px-3 py-1 rounded-full
-                                      ${categoryConfig.gradient} ${categoryConfig.textColor}
-                                      transition-all duration-300 ${categoryConfig.hoverGradient}`}
+                          key={expense.id}
+                          className="group grid grid-cols-4 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
                         >
-                          <CategoryIcon className="h-4 w-4" />
-                          <span className="font-medium">
-                            {expense.category}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`flex items-center gap-2 px-3 py-1 rounded-full ${categoryConfig.gradient} ${categoryConfig.textColor} transition-all duration-300 ${categoryConfig.hoverGradient}`}
+                            >
+                              <CategoryIcon className="h-4 w-4" />
+                              <span className="font-medium">
+                                {expense.category}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center">
+                            <time className="text-sm text-gray-600 dark:text-gray-300">
+                              {formatDate(expense.date.toString())}
+                            </time>
+                          </div>
+
+                          <div className="flex items-center justify-end">
+                            <span className="text-lg font-semibold tracking-tight">
+                              {formatCurrency(expense.amount)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-end">
+                            <span
+                              className="text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            >
+                              USD
+                            </span>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="flex items-center">
-                        <time className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatDate(expense.date.toString())}
-                        </time>
-                      </div>
-
-                      <div className="flex items-center justify-end">
-                        <span className="text-lg font-semibold tracking-tight">
-                          {formatCurrency(expense.amount)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-end">
-                        <span
-                          className="text-sm text-gray-600 dark:text-gray-300 font-medium
-                                       opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        >
-                          USD
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </TabsContent>
 
             <TabsContent value="chart">
@@ -600,6 +587,18 @@ const Dashboard = () => {
                     <Bar dataKey="value" fill="var(--primary)" />
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="suggestions">
+              <div className="prose dark:prose-invert max-w-none">
+                {suggestions ? (
+                  <div className="markdown-content" dangerouslySetInnerHTML={{ __html: suggestions }} />
+                ) : (
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -701,12 +700,11 @@ const Dashboard = () => {
                     />
                   </div>
                   <Button type="submit" className="w-full flex justify-center">
-                    {" "}
                     {isSubmittingExpense ? (
                       <Loader2 className="h-8 w-8 animate-spin" />
                     ) : (
                       "Add Expense"
-                    )}{" "}
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -808,12 +806,11 @@ const Dashboard = () => {
                   )}
 
                   <Button type="submit" className="w-full flex justify-center">
-                    {" "}
                     {isSubmittingExpense ? (
                       <Loader2 className="h-8 w-8 animate-spin" />
                     ) : (
                       "Add Expense"
-                    )}{" "}
+                    )}
                   </Button>
                 </form>
               </TabsContent>

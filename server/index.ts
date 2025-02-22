@@ -66,7 +66,7 @@ app.use((req, res, next) => {
 
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client
-  const port = 3000;
+  const port = 5000;
 
   log(`Attempting to start server on port ${port}...`);
 
