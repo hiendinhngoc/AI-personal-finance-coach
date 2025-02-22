@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Loader2 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon } from "lucide-react";
 import type { Budget, Expense, Notification, InsertExpense } from "@shared/schema";
+import type { ExpenseItem } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -47,14 +48,75 @@ const getGreeting = () => {
   return "Good evening";
 };
 
+// Function to convert VND to USD (or your preferred currency)
+const convertVNDtoUSD = (vndAmount: number) => {
+  // Using approximate conversion rate (you might want to use an API for real-time rates)
+  const rate = 24000; // 1 USD = ~24000 VND
+  return (vndAmount / rate).toFixed(2);
+};
+
 const Dashboard = () => {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
   const [month] = useState(new Date().toISOString().slice(0, 7));
   const { user, logoutMutation } = useAuth();
+  const [image, setImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [amount, setAmount] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+
+  console.log(amount, selectedCategory)
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = (reader.result as string)
+          .replace('data:', '')
+          .replace(/^.+,/, '');
+        setImage(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmitImage = async (image: string) => {
+    setIsLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/test-ai", { prompt, image });
+      const data = await res.json();
+      const response = data.response;
+      if (response && response[0]) {
+        const { amount: responseAmount, currency, category } = response[0];
+        
+        // Todo: Currency convert
+        // Convert amount if currency is VND
+        if (currency.toLowerCase() === 'vnd') {
+          setAmount(convertVNDtoUSD(responseAmount));
+        } else {
+          setAmount(responseAmount.toString());
+        }
+      
+        // Set category if it's not 'none'
+        if (category && EXPENSE_CATEGORIES.includes(category)) {
+          setSelectedCategory(category);
+        } else {
+          setSelectedCategory("Other");
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate response",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const { data: budget } = useQuery<Budget>({
     queryKey: [`/api/budget/${month}`],
@@ -124,10 +186,9 @@ const Dashboard = () => {
     const amount = parseFloat(form.amount.value);
     const category = form.category.value;
     const date = form.date.value || new Date().toISOString();
-    const invoice = form.invoice?.files?.[0];
 
     if (amount > 0 && category) {
-      createExpenseMutation.mutate({ amount, category, date, invoice });
+      createExpenseMutation.mutate({ amount, category, date });
       form.reset();
     }
   };
@@ -145,6 +206,13 @@ const Dashboard = () => {
     }
     return acc;
   }, [] as { category: string; value: number }[]) || [];
+
+  useEffect(() => {
+    if(image){
+      handleSubmitImage(image)
+    }
+  }, [image])
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -421,7 +489,7 @@ const Dashboard = () => {
               <TabsContent value="upload">
                 <form onSubmit={handleExpenseSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="amount">Amount</Label>
+                    <Label htmlFor="amount">Amount (USD)</Label>
                     <Input
                       id="amount"
                       name="amount"
@@ -429,11 +497,17 @@ const Dashboard = () => {
                       min="0"
                       step="0.01"
                       required
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
                     />
                   </div>
                   <div>
                     <Label htmlFor="category">Category</Label>
-                    <Select name="category" required>
+                    <Select 
+                    name="category" 
+                    required
+                    value={selectedCategory}
+                    onValueChange={setSelectedCategory}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
@@ -457,22 +531,46 @@ const Dashboard = () => {
                   </div>
                   <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                     <input
-                      type="file"
                       name="invoice"
                       id="invoice"
                       className="hidden"
+                      type="file"
                       accept="image/*"
+                      onChange={handleImageChange}
                     />
                     <Label
                       htmlFor="invoice"
-                      className="flex flex-col items-center gap-2 cursor-pointer"
+                      className="flex flex-col justify-center items-center gap-2 cursor-pointer"
                     >
-                      <UploadIcon className="h-8 w-8" />
-                      <span>Click or drag to upload invoice</span>
-                      <span className="text-sm text-muted-foreground">
-                        Supports: JPG, PNG, PDF
-                      </span>
+                      {!isLoading && !image && (
+                      <>
+                        <UploadIcon className="h-8 w-8" />
+                        <span>Click or drag to upload invoice</span>
+                        <span className="text-sm text-muted-foreground">
+                          Supports: JPG and PNG
+                        </span>
+                      </>
+                      )}
+                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+
+                      {!isLoading && image && (
+                        <div className="w-full flex-col max-h-20 flex justify-center items-center">
+                          <img
+                            src={`data:image/jpeg;base64,${image}`}
+                            alt="Uploaded preview"
+                            className="max-w-xs rounded-lg shadow-md w-fit max-h-16"
+                          />
+                          <button className="mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs" onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setImage(null)
+                            }}>
+                            Remove
+                          </button>
+                        </div>
+                      )}
                     </Label>
+                    
                   </div>
                   <Button type="submit" className="w-full">Upload & Process</Button>
                 </form>

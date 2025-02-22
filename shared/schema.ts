@@ -14,7 +14,7 @@ export const expenseItemSchema = z.object({
   amount: z.number().optional(),
   currency: z.enum(["vnd", "usd", "eur"]).optional(),
   category: z
-    .enum(["food", "transportation", "utility", "rent", "health"])
+    .enum(["Food", "Transportation", "Housing", "Entertainment", "Other"])
     .optional(),
 });
 
