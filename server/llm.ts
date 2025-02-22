@@ -90,30 +90,103 @@ export interface ExpenseBudgetInformation {
 export async function generateCostCuttingMeasureAdviseResponse(
   budgetExpenseDetailsThisMonth: ExpenseBudgetInformation,
   budgetExpenseDetailsLastMonth: ExpenseBudgetInformation
-): Promise<string> {
+): Promise<{ financialAdviceReport: string, topSavingCategory: string, topSpendingCategory: string }> {
+  let parsedContent = { financialAdviceReport: "Sorry, I couldn't find any advice for you. Please try again later.", topSavingCategory: "None", topSpendingCategory: "None" };
+
   try {
-    const response = await textLLM.invoke([
+    const formatInstructions = `Respond with a valid JSON objects in the following format:
+    {
+      "topSavingCategory":  "Housing expenses are lower than usual this month",
+      "topSpendingCategory":  "Entertainment spending is 30% higher than last month"
+    }
+    
+    Rules:
+    - topSavingCategory as a string.  topSavingCategory is the lowest spending expense category in the current month (if any) 
+    - topSpendingCategory as a string: topSpendingCategor is the top spending expense category in the current month (if any)
+    - DO NOT make up false information. 
+    `;
+
+    const financialAdviceReportInvoker = textLLM.invoke([
       {
         role: "system",
         content: `
-        You are a financial consultant. Your task is to provide clients with some effective cost cutting measures for their monthly expense. You will be given detailed information about EXPENSE BUDGET INFORMATION of the current month.
-OUTPUT REQUIREMENTS: Give assessment about their current financial situations, detailed advices about cost cutting measures only and make a comparison of the current and previous month, in markdown format. Using proper headings, sections, table, bullets to clarify your answer.
+        You are a financial consultant. Your task is to provide clients with some effective cost cutting measures for their monthly expense. 
+        You will be given detailed information about EXPENSE BUDGET INFORMATION of the current month and previous month.
+        
+        ---
+        OUTPUT REQUIREMENTS: 
+        DO NOT make up false information.
+        Give assessment about their current financial situations, detailed advices about 
+        cost cutting measures only and make a comparison of the current and previous month, in markdown format. 
+        Using proper headings, sections, table, bullets to clarify your answer.
+        
         `,
       },
       {
         role: "user",
         content: `
         EXPENSE BUDGET INFORMATION:
-        this month: ${JSON.stringify(
+        current month: ${JSON.stringify(
           budgetExpenseDetailsThisMonth
-        )}, last month:  ${JSON.stringify(budgetExpenseDetailsLastMonth)}
+        )}, previous month:  ${JSON.stringify(budgetExpenseDetailsLastMonth)}
         `,
       },
     ]);
-    return response.content as string;
+
+    const costCategoryInvoker = textLLM.invoke([
+      {
+        role: "system",
+        content: `
+        You are a financial consultant. Your task is to identify Top Saving Category and Top Spending Category from the provided EXPENSE BUDGET INFORMATION of the current month and previous month.
+        ---
+        JSON SCHEMA:
+        ${formatInstructions}
+
+        ### Instructions:
+       - Extract only relevant data.
+       - Ensure all values strictly match the schema's data types and format.
+       - Do NOT add any extra information or explanations.
+       - Respond ONLY with a valid JSON object that conforms to the schema
+        `,
+      },
+      {
+        role: "user",
+        content: `
+        EXPENSE BUDGET INFORMATION:
+        current month: ${JSON.stringify(
+          budgetExpenseDetailsThisMonth
+        )}, previous month:  ${JSON.stringify(budgetExpenseDetailsLastMonth)}
+        `,
+      },
+    ]);
+
+    const [financialAdviceReportResponse, costCategoryResponse] = await Promise.all([
+      financialAdviceReportInvoker,
+      costCategoryInvoker,
+    ])
+
+    const financialAdviceReportResponseContent = financialAdviceReportResponse.content as string;
+    const costCategoryResponseContent = costCategoryResponse.content as string;
+
+    try {
+      parsedContent = JSON.parse(costCategoryResponseContent.replace("json", "").replace(/```/g, ""));
+    } catch {
+      // Call text_llm to fix error json content
+      const fixedContent = await reformatJsonResponse(
+        formatInstructions,
+        costCategoryResponseContent
+      );
+      parsedContent = JSON.parse(fixedContent.replace("json", "").replace(/```/g, ""));
+    }
+    return {
+      financialAdviceReport: financialAdviceReportResponseContent,
+      topSavingCategory: parsedContent.topSavingCategory,
+      topSpendingCategory: parsedContent.topSpendingCategory
+    };
+
   } catch (error) {
     console.error("Error generating text response:", error);
-    throw new Error("Failed to generate text response");
+    return parsedContent;
   }
 }
 

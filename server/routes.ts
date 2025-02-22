@@ -19,8 +19,8 @@ let agentPromise: Promise<any> | null = null;
 
 const getAgent = async () => {
   if (!agentPromise) {
-    agentPromise = initializeAgent().catch(err => {
-      console.error('Failed to initialize agent:', err);
+    agentPromise = initializeAgent().catch((err) => {
+      console.error("Failed to initialize agent:", err);
       // Reset promise so we can try again
       agentPromise = null;
       return null;
@@ -55,17 +55,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const formattedExpensesThisMonth = await formatExpenses(
       req.user.id,
-      req.params.month
+      req.params.month,
     );
     const formattedExpensesLastMonth = await formatExpenses(
       req.user.id,
       Number(req.params.month) === 1
         ? "12"
-        : String(Number(req.params.month) - 1)
+        : String(Number(req.params.month) - 1),
     );
     const costCuttingMeasures = await generateCostCuttingMeasureAdviseResponse(
       formattedExpensesThisMonth,
-      formattedExpensesLastMonth
+      formattedExpensesLastMonth,
     );
     res.json(costCuttingMeasures);
   });
@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update remaining budget
     const budget = await storage.getBudget(
       req.user.id,
-      new Date().toISOString().slice(0, 7)
+      new Date().toISOString().slice(0, 7),
     );
     if (budget) {
       const newRemainingAmount = budget.remainingAmount - expense.amount;
@@ -95,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (newRemainingAmount < budget.totalAmount * 0.2) {
         await storage.createNotification(
           req.user.id,
-          "Warning: You have less than 20% of your budget remaining"
+          "Warning: You have less than 20% of your budget remaining",
         );
       }
     }
@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         response = await generateCostCuttingMeasureAdviseResponse(
           expenseBudgetInformationThisMonth,
-          expenseBudgetInformationLastMonth
+          expenseBudgetInformationLastMonth,
         );
       }
 
@@ -171,6 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
     try {
       const formatInstructions = `
+      Respond with a valid JSON objects in the following format:
       {
         "main": "Clear",
         "description": "Sunny with no clouds",
@@ -179,11 +180,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "windSpeed": 5.2
       }
       Rules:
-      - main: Must be one of the following: "Clear", "Clouds", "Rain", "Snow", or "Thunderstorm".
-      - description: A short text describing the weather conditions.
-      - temp: Temperature in Fahrenheit as a number.
-      - humidity: Humidity percentage as a number.
-      - windSpeed: Wind speed in mph as a number.
+      - main as string: Must be one of the following: "Clear", "Clouds", "Rain", "Snow", or "Thunderstorm".
+      - description as string: A short text describing the weather conditions.
+      - temp as a number: Temperature in Fahrenheit as a number.
+      - humidity as a number: Humidity percentage as a number.
+      - windSpeed as a number: Wind speed in mph as a number.
       `;
       const response = await textLLM.invoke([
         {
@@ -195,7 +196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           ---
           OUTPUT REQUIREMENTS:
-          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`,
+          ### Instructions:
+          - Extract only relevant data.
+          - Ensure all values strictly match the schema's data types and format.
+          - Do NOT add any extra information or explanations.
+          - Respond ONLY with a valid JSON object that conforms to the schema`,
         },
         {
           role: "user",
@@ -209,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (e) {
         const fixedContent = await reformatJsonResponse(
           formatInstructions,
-          content
+          content,
         );
         weatherData = JSON.parse(fixedContent);
       }
@@ -243,7 +248,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the agent instance
       const agent = await getAgent();
       if (!agent) {
-        return res.status(503).json({ error: "AI service temporarily unavailable" });
+        return res
+          .status(503)
+          .json({ error: "AI service temporarily unavailable" });
       }
 
       // Use formatExpenses utility to transform the expenses
@@ -251,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const month = new Date().getMonth() + 1;
       const currentFinancialData = await formatExpenses(
         req.user.id,
-        month.toString()
+        month.toString(),
       );
 
       // Get response from agent
@@ -259,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agent,
         currentFinancialData,
         parseInt(threadId),
-        userMessage
+        userMessage,
       );
 
       if (!response) {

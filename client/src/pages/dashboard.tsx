@@ -189,9 +189,12 @@ export default function Dashboard() {
     queryFn: () => fetch("/api/weather").then((res) => res.json()),
   });
 
-  const { data: suggestions } = useQuery({
+  const { data: analysis } = useQuery({
     queryKey: [`/api/expenses/analysis/${month}`],
   });
+
+  const { financialAdviceReport = "", topSavingCategory = "", topSpendingCategory = "" } = 
+  analysis || {};
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -641,11 +644,9 @@ export default function Dashboard() {
 
             <TabsContent value='suggestions'>
               <div className='prose dark:prose-invert max-w-none'>
-                {suggestions ? (
+                {financialAdviceReport ? (
                   <>
-                    <Markdown remarkPlugins={[remarkGfm]}>
-                      {suggestions as string}
-                    </Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]}>{financialAdviceReport}</Markdown>
 
                     <div className='mt-8 grid grid-cols-2 gap-6'>
                       <div className='border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4'>
@@ -653,7 +654,7 @@ export default function Dashboard() {
                           Top Saving Category
                         </h3>
                         <p className='text-green-600 dark:text-green-300'>
-                          Housing expenses are lower than usual this month
+                          {topSavingCategory}
                         </p>
                       </div>
 
@@ -662,7 +663,7 @@ export default function Dashboard() {
                           Watch Out
                         </h3>
                         <p className='text-red-600 dark:text-red-300'>
-                          Entertainment spending is 30% higher than last month
+                          {topSpendingCategory}
                         </p>
                       </div>
                     </div>
