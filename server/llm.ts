@@ -57,9 +57,9 @@ export async function extractTextFromImage(
             type: "text",
             text: `Identify and extract only the following information from the given image:
 
-              1. **Amount** (as a number)
+              1. **Amount (if any)** (as a number)
               2. **Currency** (such as "vnd", "usd", "eur", lowercase)
-              3. **Category** (such as "food", "transportation", "utility", "rent", "health", lowercase)
+              3. **Description** (such as "buying food", "buying bus ticket", "buying utility")
               ---
               ### Rules:
               - Extract only relevant expense items.
@@ -175,6 +175,7 @@ export async function generateVisionResponse(
   prompt?: string,
 ): Promise<any> {
   try {
+    console.log("base64Image", base64Image);
     const extractedText = await extractTextFromImage(base64Image, prompt);
     console.log("Extracted Text:", extractedText);
     const parsedExpense = await parseExpenseItems(extractedText);

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BellIcon } from "lucide-react";
+import { BellIcon, PlusIcon } from "lucide-react";
 import type { Budget, Expense, Notification } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
