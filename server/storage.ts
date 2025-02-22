@@ -94,37 +94,34 @@ export class DatabaseStorage implements IStorage {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const budget = await this.getBudget(userId, currentMonth);
 
-    if (!budget) {
-      throw new Error("No budget found for the current month");
-    }
+    // Create expense first
+    const [expense] = await db
+      .insert(expenses)
+      .values({
+        ...insertExpense,
+        userId,
+        date: new Date(),
+      })
+      .returning();
 
-    // Calculate new remaining amount
-    const newRemainingAmount = budget.remainingAmount - insertExpense.amount;
-
-    if (newRemainingAmount < 0) {
-      throw new Error("Expense amount exceeds remaining budget");
-    }
-
-    // Start a transaction to ensure both expense creation and budget update succeed
-    const [expense] = await db.transaction(async (tx) => {
-      // Create the expense
-      const [newExpense] = await tx
-        .insert(expenses)
-        .values({
-          ...insertExpense,
-          userId,
-          date: new Date(),
-        })
-        .returning();
+    // If budget exists, update it
+    if (budget) {
+      const newRemainingAmount = budget.remainingAmount - insertExpense.amount;
 
       // Update the budget's remaining amount
-      await tx
+      await db
         .update(budgets)
         .set({ remainingAmount: newRemainingAmount })
         .where(eq(budgets.id, budget.id));
 
-      return [newExpense];
-    });
+      // Create notification if budget is low
+      if (newRemainingAmount < budget.totalAmount * 0.2) {
+        await this.createNotification(
+          userId,
+          "Warning: You have less than 20% of your budget remaining"
+        );
+      }
+    }
 
     return expense;
   }
