@@ -39,6 +39,8 @@ This project is an AI-powered personal financial coach application. It leverages
 - **AI:**
   - LangChain
   - OpenAI
+  - Llama
+  - Openrouter
 
 ## Installation
 
@@ -73,12 +75,12 @@ This project is an AI-powered personal financial coach application. It leverages
 4. Run the application:
 
    ```sh
-   npm start
+   npm dev run
    ```
 
 ## Usage
 
-Once the application is running, open your browser and navigate to `http://localhost:3000` to access the AI Personal Financial Coach.
+Once the application is running, open your browser and navigate to `http://localhost:5000` to access the AI Personal Financial Coach.
 
 ## Folder Structure
 
@@ -86,14 +88,9 @@ The project structure is as follows:
 
 ```
 AI-personal-financial-coach/
-├── backend/                # Backend code
-│   ├── src/
-│   ├── tests/
-│   └── package.json
-├── frontend/               # Frontend code
-│   ├── src/
-│   ├── public/
-│   └── package.json
+├── client/                 # Frontend code
+├── server/                 # Backend code
+├── shared/
 ├── .env                    # Environment variables
 ├── README.md               # Project documentation
 └── package.json            # Project metadata and dependencies
