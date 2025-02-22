@@ -14,7 +14,7 @@ import {
 
 async function formatExpenses(
   userId: number,
-  month: string,
+  month: string
 ): Promise<ExpenseBudgetInformation> {
   const [rawExpenses, budget] = await Promise.all([
     storage.getExpenses(userId, month),
@@ -22,21 +22,18 @@ async function formatExpenses(
   ]);
   const totalExpenses = rawExpenses.reduce(
     (sum, expense) => sum + expense.amount,
-    0,
+    0
   );
-  const expensesByCategory = rawExpenses.reduce(
-    (acc, expense) => {
-      if (!acc[expense.category]) {
-        acc[expense.category] = 0;
-      }
-      acc[expense.category] += expense.amount;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+  const expensesByCategory = rawExpenses.reduce((acc, expense) => {
+    if (!acc[expense.category]) {
+      acc[expense.category] = 0;
+    }
+    acc[expense.category] += expense.amount;
+    return acc;
+  }, {} as Record<string, number>);
 
   const expenseDetails: ExpenseDetail[] = Object.entries(
-    expensesByCategory,
+    expensesByCategory
   ).map(([category, amount]) => ({
     category,
     amount,
@@ -73,12 +70,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/expenses/analysis/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const formattedExpenses = await formatExpenses(
+    const formattedExpensesThisMonth = await formatExpenses(
       req.user.id,
-      req.params.month,
+      req.params.month
     );
-    const costCuttingMeasures =
-      await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
+    const formattedExpensesLastMonth = await formatExpenses(
+      req.user.id,
+      Number(req.params.month) === 1
+        ? "12"
+        : String(Number(req.params.month) - 1)
+    );
+    const costCuttingMeasures = await generateCostCuttingMeasureAdviseResponse(
+      formattedExpensesThisMonth,
+      formattedExpensesLastMonth
+    );
     res.json(costCuttingMeasures);
   });
 
@@ -99,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update remaining budget
     const budget = await storage.getBudget(
       req.user.id,
-      new Date().toISOString().slice(0, 7),
+      new Date().toISOString().slice(0, 7)
     );
     if (budget) {
       const newRemainingAmount = budget.remainingAmount - expense.amount;
@@ -107,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (newRemainingAmount < budget.totalAmount * 0.2) {
         await storage.createNotification(
           req.user.id,
-          "Warning: You have less than 20% of your budget remaining",
+          "Warning: You have less than 20% of your budget remaining"
         );
       }
     }
@@ -140,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (image) {
         response = await generateVisionResponse(image, prompt);
       } else {
-        const expenseBudgetInformation: ExpenseBudgetInformation = {
+        const expenseBudgetInformationThisMonth: ExpenseBudgetInformation = {
           budget: 10000000,
           month: 1,
           totalExpenses: 13000000,
@@ -150,8 +155,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             { category: "utitly", amount: 3000000 },
           ],
         };
+        const expenseBudgetInformationLastMonth: ExpenseBudgetInformation = {
+          budget: 10000000,
+          month: 12,
+          totalExpenses: 12000000,
+          expenseDetails: [
+            { category: "food", amount: 2000000 },
+            { category: "education", amount: 6000000 },
+            { category: "utitly", amount: 3000000 },
+          ],
+        };
         response = await generateCostCuttingMeasureAdviseResponse(
-          expenseBudgetInformation,
+          expenseBudgetInformationThisMonth,
+          expenseBudgetInformationLastMonth
         );
       }
 
@@ -210,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (e) {
         const fixedContent = await reformatJsonResponse(
           formatInstructions,
-          content,
+          content
         );
         weatherData = JSON.parse(fixedContent);
       }

@@ -41,7 +41,10 @@ export async function generateTextResponse(prompt: string): Promise<string> {
   }
 }
 
-export async function reformatJsonResponse(formatInstructions: string, content: string): Promise<string> {
+export async function reformatJsonResponse(
+  formatInstructions: string,
+  content: string
+): Promise<string> {
   try {
     const response = await textLLM.invoke([
       {
@@ -85,22 +88,25 @@ export interface ExpenseBudgetInformation {
 }
 
 export async function generateCostCuttingMeasureAdviseResponse(
-  budgetExpenseDetails: ExpenseBudgetInformation,
+  budgetExpenseDetailsThisMonth: ExpenseBudgetInformation,
+  budgetExpenseDetailsLastMonth: ExpenseBudgetInformation
 ): Promise<string> {
   try {
     const response = await textLLM.invoke([
       {
         role: "system",
         content: `
-        You are a financial consultant. Your task is to provided clients with some effective cost cutting measures for their monthly expense. You will be given detailed information about EXPENSE BUDGET INFORMATION.
-        OUTPUT REQUIREMENTS: Give assessment about their current financial situations and detailed advices about cost cutting measures only, in markdown format. Using proper headings, sections, table, bullets to clarify your answer.
+        You are a financial consultant. Your task is to provide clients with some effective cost cutting measures for their monthly expense. You will be given detailed information about EXPENSE BUDGET INFORMATION of the current month.
+OUTPUT REQUIREMENTS: Give assessment about their current financial situations, detailed advices about cost cutting measures only and make a comparison of the current and previous month, in markdown format. Using proper headings, sections, table, bullets to clarify your answer.
         `,
       },
       {
         role: "user",
         content: `
         EXPENSE BUDGET INFORMATION:
-        ${JSON.stringify(budgetExpenseDetails)}
+        this month: ${JSON.stringify(
+          budgetExpenseDetailsThisMonth
+        )}, last month:  ${JSON.stringify(budgetExpenseDetailsLastMonth)}
         `,
       },
     ]);
@@ -113,7 +119,7 @@ export async function generateCostCuttingMeasureAdviseResponse(
 
 export async function extractTextFromImage(
   base64Image: string,
-  prompt: string = "Analyze this receipt and extract the text.",
+  prompt: string = "Analyze this receipt and extract the text."
 ): Promise<string> {
   try {
     const response = await visionLLM.invoke([
@@ -201,7 +207,10 @@ Rules:
       parsedContent = JSON.parse(content);
     } catch {
       // Call text_llm to fix error json content
-      const fixedContent = await reformatJsonResponse(formatInstructions, content);
+      const fixedContent = await reformatJsonResponse(
+        formatInstructions,
+        content
+      );
       parsedContent = JSON.parse(fixedContent);
     }
     return parsedContent;
@@ -213,7 +222,7 @@ Rules:
 
 export async function generateVisionResponse(
   base64Image: string,
-  prompt?: string,
+  prompt?: string
 ): Promise<any> {
   try {
     const extractedText = await extractTextFromImage(base64Image, prompt);
