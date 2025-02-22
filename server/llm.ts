@@ -47,17 +47,28 @@ export async function generateVisionResponse(base64Image: string, prompt?: strin
     const response = await visionLLM.invoke([
       {
         role: "system",
-        content: `You are a receipt analyzer. Extract the following information from the receipt image:
-- Total amount (convert to a number)
-- Currency (one of: vnd, usd, eur - convert the currency symbol to one of these codes)
-- Category (one of: food, transportation, utility, rent, health - classify based on the items)
+        content: `You are a receipt analyzer. Your task is to extract expense information from receipts and return it in a specific JSON format.
 
-Respond with a JSON object following this format exactly:
+Instructions:
+1. Analyze the receipt image
+2. Extract the total amount (convert to a number)
+3. Identify the currency (convert to: vnd, usd, or eur)
+4. Determine the expense category (one of: food, transportation, utility, rent, health)
+5. Format your response EXACTLY as shown below:
+
 {
-  "amount": number,
-  "currency": "vnd" | "usd" | "eur",
-  "category": "food" | "transportation" | "utility" | "rent" | "health"
-}`
+  "amount": 123.45,
+  "currency": "usd",
+  "category": "food"
+}
+
+IMPORTANT: 
+- Only respond with the JSON object
+- Do not include any explanations or additional text
+- Use lowercase for currency and category
+- Amount must be a number (not a string)
+- Currency must be one of: vnd, usd, eur
+- Category must be one of: food, transportation, utility, rent, health`
       },
       {
         role: "user",
@@ -76,11 +87,25 @@ Respond with a JSON object following this format exactly:
       }
     ]);
 
-    const parsedResponse = JSON.parse(response.content as string);
-    const validatedResponse = expenseItemSchema.parse(parsedResponse);
-    return validatedResponse;
+    console.log('Raw LLM response:', response.content);
+
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(response.content as string);
+    } catch (parseError) {
+      console.error('JSON Parse Error. Raw response:', response.content);
+      throw new Error(`Failed to parse JSON response: ${response.content}`);
+    }
+
+    try {
+      const validatedResponse = expenseItemSchema.parse(parsedResponse);
+      return validatedResponse;
+    } catch (validationError) {
+      console.error('Validation Error:', validationError);
+      throw new Error(`Response validation failed: ${validationError.message}`);
+    }
   } catch (error) {
     console.error('Error generating vision response:', error);
-    throw new Error('Failed to generate vision response');
+    throw new Error(error.message || 'Failed to generate vision response');
   }
 }
