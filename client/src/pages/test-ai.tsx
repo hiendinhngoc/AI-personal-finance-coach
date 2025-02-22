@@ -7,11 +7,12 @@ import { apiRequest } from "@/lib/queryClient";
 import { Loader2, ImageIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import type { ExpenseItem } from "@shared/schema";
 
 export default function TestAI() {
   const [prompt, setPrompt] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [response, setResponse] = useState("");
+  const [response, setResponse] = useState<string | ExpenseItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -97,8 +98,16 @@ export default function TestAI() {
           {response && (
             <div className="mt-6">
               <h3 className="font-semibold mb-2">Response:</h3>
-              <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
-                {response}
+              <div className="p-4 bg-muted rounded-lg">
+                {typeof response === "string" ? (
+                  <pre className="whitespace-pre-wrap">{response}</pre>
+                ) : (
+                  <div className="space-y-2">
+                    <p><span className="font-medium">Amount:</span> {response.amount}</p>
+                    <p><span className="font-medium">Currency:</span> {response.currency.toUpperCase()}</p>
+                    <p><span className="font-medium">Category:</span> {response.category}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

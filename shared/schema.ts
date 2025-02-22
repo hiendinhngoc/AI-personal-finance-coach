@@ -2,6 +2,14 @@ import { pgTable, text, serial, integer, boolean, timestamp, doublePrecision } f
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const expenseItemSchema = z.object({
+  amount: z.number(),
+  currency: z.enum(['vnd', 'usd', 'eur']),
+  category: z.enum(['food', 'transportation', 'utility', 'rent', 'health'])
+});
+
+export type ExpenseItem = z.infer<typeof expenseItemSchema>;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
