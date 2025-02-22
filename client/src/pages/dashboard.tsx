@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon } from "lucide-react";
-import type { Budget, Expense, Notification } from "@shared/schema";
+import type { Budget, Expense, Notification, InsertExpense } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -66,13 +66,23 @@ export default function Dashboard() {
   const createExpenseMutation = useMutation({
     mutationFn: async (data: { amount: number; category: string; date: string; invoice?: File }) => {
       const formData = new FormData();
-      formData.append('amount', data.amount.toString());
-      formData.append('category', data.category);
-      formData.append('date', data.date);
+
+      const expenseData: InsertExpense = {
+        amount: data.amount,
+        category: data.category,
+        description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
+        receiptUrl: ""  // Will be updated by backend if invoice is present
+      };
+
+      // If there's an invoice, append it to formData
       if (data.invoice) {
         formData.append('invoice', data.invoice);
+        formData.append('expense', JSON.stringify(expenseData));
+        return apiRequest("POST", "/api/expenses/upload", formData);
       }
-      await apiRequest("POST", "/api/expenses", formData);
+
+      // If no invoice, send expense data directly
+      return apiRequest("POST", "/api/expenses", expenseData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/expenses/${timeFilter}`] });
@@ -80,12 +90,15 @@ export default function Dashboard() {
       setExpenseModalOpen(false);
       toast({ title: "Expense logged successfully" });
     },
+    onError: (error: any) => {
+      console.error('Expense submission error:', error);
+      toast({ 
+        title: "Failed to add expense",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    }
   });
-
-  const chartData = expenses?.map(expense => ({
-    date: new Date(expense.date).toLocaleDateString(),
-    amount: expense.amount
-  })) || [];
 
   const handleExpenseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -100,6 +113,11 @@ export default function Dashboard() {
       form.reset();
     }
   };
+
+  const chartData = expenses?.map(expense => ({
+    date: new Date(expense.date).toLocaleDateString(),
+    amount: expense.amount
+  })) || [];
 
   return (
     <div className="min-h-screen bg-background">
