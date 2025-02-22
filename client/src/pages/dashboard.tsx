@@ -311,6 +311,7 @@ export default function Dashboard() {
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
         receiptUrl: "",
+        date: new Date(data.date),
       };
 
       if (data.invoice) {

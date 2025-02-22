@@ -62,12 +62,16 @@ export const insertBudgetSchema = createInsertSchema(budgets).pick({
   month: true,
 });
 
-export const insertExpenseSchema = createInsertSchema(expenses).pick({
-  amount: true,
-  category: true,
-  description: true,
-  receiptUrl: true,
-});
+export const insertExpenseSchema = createInsertSchema(expenses)
+  .pick({
+    amount: true,
+    category: true,
+    description: true,
+    receiptUrl: true,
+  })
+  .extend({
+    date: z.coerce.date(),
+  });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
