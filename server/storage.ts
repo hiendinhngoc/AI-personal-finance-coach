@@ -1,5 +1,6 @@
 import { User, InsertUser, Budget, InsertBudget, Expense, InsertExpense, Notification, users, budgets, expenses, notifications } from "@shared/schema";
-import { db, eq, and } from "./db";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -86,11 +87,14 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(expenses)
-      .where(eq(expenses.userId, userId));
+      .where(and(
+        eq(expenses.userId, userId),
+        eq(expenses.date.toString().slice(0, 7), month)
+      ));
   }
 
   async createExpense(userId: number, insertExpense: InsertExpense): Promise<Expense> {
-    // Get current month's budget
+    // Get current month's budget for the specific user
     const currentMonth = new Date().toISOString().slice(0, 7);
     const budget = await this.getBudget(userId, currentMonth);
 
@@ -104,18 +108,22 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    // If budget exists, update it
+    // If budget exists for this user, update it
     if (budget) {
+      // Calculate new remaining amount for this user's budget
       const newRemainingAmount = budget.remainingAmount - expense.amount;
 
-      // Update the budget's remaining amount
+      // Update the budget's remaining amount for this user
       const [updatedBudget] = await db
         .update(budgets)
         .set({ remainingAmount: newRemainingAmount })
-        .where(eq(budgets.id, budget.id))
+        .where(and(
+          eq(budgets.id, budget.id),
+          eq(budgets.userId, userId)
+        ))
         .returning();
 
-      // Create notification if budget is low
+      // Create notification if budget is low for this user
       if (newRemainingAmount < updatedBudget.totalAmount * 0.2) {
         await this.createNotification(
           userId,
