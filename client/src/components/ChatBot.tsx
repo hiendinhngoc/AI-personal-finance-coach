@@ -42,7 +42,7 @@ export function ChatBot() {
       const newThreadId = Math.floor(Math.random() * 1000000);
       setThreadId(newThreadId);
       localStorage.setItem("chatThreadId", newThreadId.toString());
-      
+
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -54,9 +54,9 @@ export function ChatBot() {
             threadId: newThreadId,
           }),
         });
-        
+
         if (!response.ok) throw new Error("Failed to initialize chat");
-        
+
         const data = await response.json();
         setMessages([{ content: data.message, isUser: false }]);
       } catch (error) {
@@ -124,7 +124,7 @@ export function ChatBot() {
             className="mb-4"
           >
             <Card className={cn(
-              "w-[350px] shadow-lg",
+              "w-[350px] shadow-lg flex flex-col",
               isMinimized ? "h-auto" : "h-[500px]"
             )}>
               <div className="p-3 border-b flex justify-between items-center bg-primary text-primary-foreground rounded-t-lg">
@@ -148,10 +148,10 @@ export function ChatBot() {
                   </Button>
                 </div>
               </div>
-              
+
               {!isMinimized && (
                 <>
-                  <div className="p-4 h-[400px] overflow-y-auto">
+                  <div className="flex-1 p-4 overflow-y-auto">
                     {messages.map((message, index) => (
                       <div
                         key={index}
@@ -168,7 +168,7 @@ export function ChatBot() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <div className="p-4 border-t">
+                  <div className="p-4 border-t mt-auto">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
