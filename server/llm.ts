@@ -1,7 +1,4 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { expenseItemSchema, type ExpenseItem } from "@shared/schema";
 
 if (!process.env.OPENROUTER_API_KEY) {
   throw new Error("OPENROUTER_API_KEY is required");
@@ -124,7 +121,6 @@ export async function extractTextFromImage(
 
 export async function parseExpenseItems(extractedText: string): Promise<any> {
   try {
-    const parser = new JsonOutputParser<ExpenseItem[]>();
     const formatInstructions = `Respond with a valid JSON array of expense objects in the following format:
 [
   {
@@ -197,7 +193,6 @@ Rules:
        ${content}`,
         },
       ]);
-      console.log("Fixed content:", fixedContent);
       parsedContent = JSON.parse(fixedContent.content as string);
     }
     return parsedContent;
@@ -212,7 +207,6 @@ export async function generateVisionResponse(
   prompt?: string
 ): Promise<any> {
   try {
-    console.log("base64Image", base64Image);
     const extractedText = await extractTextFromImage(base64Image, prompt);
     console.log("Extracted Text:", extractedText);
     const parsedExpense = await parseExpenseItems(extractedText);

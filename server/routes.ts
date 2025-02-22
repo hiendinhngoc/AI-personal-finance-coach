@@ -3,7 +3,34 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
-import { ExpenseBudgetInformation, generateCostCuttingMeasureAdviseResponse, generateVisionResponse } from "./llm";
+import { ExpenseDetail, ExpenseBudgetInformation, generateCostCuttingMeasureAdviseResponse, generateVisionResponse } from "./llm";
+
+async function formatExpenses(userId: number, month: string): Promise<ExpenseBudgetInformation> {
+  const [rawExpenses, budget] = await Promise.all([
+    storage.getExpenses(userId, month),
+    storage.getBudget(userId, month)
+  ]);
+  const totalExpenses = rawExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const expensesByCategory = rawExpenses.reduce((acc, expense) => {
+    if (!acc[expense.category]) {
+      acc[expense.category] = 0;
+    }
+    acc[expense.category] += expense.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const expenseDetails: ExpenseDetail[] = Object.entries(expensesByCategory).map(([category, amount]) => ({
+    category,
+    amount
+  }));
+
+  return {
+    month: parseInt(month),
+    totalExpenses,
+    expenseDetails,
+    budget: budget?.totalAmount || 0
+  };
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -22,6 +49,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const budget = await storage.createBudget(req.user.id, parseResult.data);
     res.status(201).json(budget);
+  });
+
+  app.get("/api/expenses/analysis/:month", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const formattedExpenses = await formatExpenses(req.user.id, req.params.month);
+    const costCuttingMeasures = await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
+    res.json(costCuttingMeasures);
   });
 
   app.get("/api/expenses/:month", async (req, res) => {

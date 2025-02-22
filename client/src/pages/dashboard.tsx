@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -131,7 +131,6 @@ const Dashboard = () => {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  console.log(amount, selectedCategory)
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -185,9 +184,17 @@ const Dashboard = () => {
     queryKey: [`/api/budget/${month}`],
   });
 
+
+
   const { data: expenses } = useQuery<Expense[]>({
     queryKey: [`/api/expenses/${timeFilter}`],
   });
+  console.log(expenses)
+  const { data: costCuttingMeasure } = useQuery<string>({
+    queryKey: [`/api/expenses/analysis/${timeFilter}`],
+  });
+
+  console.log(costCuttingMeasure)
 
   const { data: notifications } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
