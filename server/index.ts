@@ -70,11 +70,14 @@ app.use((req, res, next) => {
 
   log(`Attempting to start server on port ${port}...`);
 
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`Server is now running on port ${port}`);
-  });
+  server.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`Server is now running on port ${port}`);
+    },
+  );
 })();

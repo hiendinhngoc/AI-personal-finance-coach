@@ -26,8 +26,6 @@ export const visionLLM = new ChatOpenAI({
   },
 });
 
-
-
 export async function generateTextResponse(prompt: string): Promise<string> {
   try {
     const response = await textLLM.invoke([
@@ -55,8 +53,9 @@ export interface ExpenseBudgetInformation {
   expenseDetails?: Array<ExpenseDetail | null>;
 }
 
-
-export async function generateCostCuttingMeasureAdviseResponse(budgetExpenseDetails: ExpenseBudgetInformation): Promise<string> {
+export async function generateCostCuttingMeasureAdviseResponse(
+  budgetExpenseDetails: ExpenseBudgetInformation,
+): Promise<string> {
   try {
     const response = await textLLM.invoke([
       {
@@ -83,7 +82,7 @@ export async function generateCostCuttingMeasureAdviseResponse(budgetExpenseDeta
 
 export async function extractTextFromImage(
   base64Image: string,
-  prompt: string = "Analyze this receipt and extract the text."
+  prompt: string = "Analyze this receipt and extract the text.",
 ): Promise<string> {
   try {
     const response = await visionLLM.invoke([
@@ -204,7 +203,7 @@ Rules:
 
 export async function generateVisionResponse(
   base64Image: string,
-  prompt?: string
+  prompt?: string,
 ): Promise<any> {
   try {
     const extractedText = await extractTextFromImage(base64Image, prompt);

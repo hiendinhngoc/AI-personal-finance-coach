@@ -3,7 +3,12 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
-import { ExpenseDetail, ExpenseBudgetInformation, generateCostCuttingMeasureAdviseResponse, generateVisionResponse } from "./llm";
+import {
+  ExpenseDetail, ExpenseBudgetInformation,
+  generateCostCuttingMeasureAdviseResponse,
+  generateVisionResponse,
+  textLLM,
+} from "./llm";
 
 async function formatExpenses(userId: number, month: string): Promise<ExpenseBudgetInformation> {
   const [rawExpenses, budget] = await Promise.all([
@@ -73,14 +78,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const expense = await storage.createExpense(req.user.id, parseResult.data);
 
     // Update remaining budget
-    const budget = await storage.getBudget(req.user.id, new Date().toISOString().slice(0, 7));
+    const budget = await storage.getBudget(
+      req.user.id,
+      new Date().toISOString().slice(0, 7),
+    );
     if (budget) {
       const newRemainingAmount = budget.remainingAmount - expense.amount;
       await storage.updateBudget(budget.id, newRemainingAmount);
       if (newRemainingAmount < budget.totalAmount * 0.2) {
         await storage.createNotification(
           req.user.id,
-          "Warning: You have less than 20% of your budget remaining"
+          "Warning: You have less than 20% of your budget remaining",
         );
       }
     }
@@ -120,15 +128,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expenseDetails: [
             { category: "food", amount: 3000000 },
             { category: "education", amount: 7000000 },
-            { category: "utitly", amount: 3000000 }
-          ]
+            { category: "utitly", amount: 3000000 },
+          ],
         };
-        response = await generateCostCuttingMeasureAdviseResponse(expenseBudgetInformation);
+        response = await generateCostCuttingMeasureAdviseResponse(
+          expenseBudgetInformation,
+        );
       }
 
       res.json({ response });
     } catch (error) {
       res.status(500).json({ error: "Failed to generate response" });
+    }
+  });
+
+  app.get("/api/weather", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const response = await textLLM.invoke([
+        {
+          role: "system",
+          content: "You are a weather API. Return only a JSON object with the current weather in San Francisco with these fields: main (Clear/Clouds/Rain/Snow/Thunderstorm), description, temp (in Fahrenheit), humidity, windSpeed.",
+        },
+        {
+          role: "user",
+          content: "What's the current weather in San Francisco?",
+        },
+      ]);
+
+      const weatherData = JSON.parse(response.content as string);
+      res.json(weatherData);
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+      res.status(500).json({ error: "Failed to fetch weather data" });
     }
   });
 
