@@ -111,7 +111,7 @@ export class DatabaseStorage implements IStorage {
     // If budget exists for this user, update it
     if (budget) {
       // Calculate new remaining amount for this user's budget
-      const newRemainingAmount = budget.remainingAmount - expense.amount;
+      const newRemainingAmount = budget.totalAmount - expense.amount;
 
       // Update the budget's remaining amount for this user
       const [updatedBudget] = await db
