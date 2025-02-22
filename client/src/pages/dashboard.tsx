@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import type { Budget, Expense, Notification, InsertExpense } from "@shared/schema";
 import type { LucideIcon } from 'lucide-react';
-import type { ExpenseItem } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -124,10 +123,10 @@ const Dashboard = () => {
   const [month] = useState(new Date().toISOString().slice(0, 7));
   const { user, logoutMutation } = useAuth();
   const [image, setImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setisUploadingImage] = useState(false);
   const [amount, setAmount] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -148,7 +147,7 @@ const Dashboard = () => {
   };
 
   const handleSubmitImage = async (image: string) => {
-    setIsLoading(true);
+    setisUploadingImage(true);
     try {
       const res = await apiRequest("POST", "/api/test-ai", { prompt, image });
       const data = await res.json();
@@ -178,7 +177,7 @@ const Dashboard = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setisUploadingImage(false);
     }
   };
 
@@ -231,8 +230,9 @@ const Dashboard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/expenses/${timeFilter}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/budget/${month}`] });
-      setExpenseModalOpen(false);
+      setShowExpenseModal(false);
       toast({ title: "Expense logged successfully" });
+      setIsSubmittingExpense(false);
     },
     onError: (error: any) => {
       console.error('Expense submission error:', error);
@@ -241,11 +241,13 @@ const Dashboard = () => {
         description: error.message || "Please try again",
         variant: "destructive"
       });
+      setIsSubmittingExpense(false);
     }
   });
 
   const handleExpenseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmittingExpense(true)
     const form = e.target as HTMLFormElement;
     const amount = parseFloat(form.amount.value);
     const category = form.category.value;
@@ -484,7 +486,7 @@ const Dashboard = () => {
               className="space-y-4"
             >
               <div>
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">Amount (USD)</Label>
                 <Input
                   id="amount"
                   name="amount"
@@ -520,7 +522,7 @@ const Dashboard = () => {
               <TabsContent value="form">
                 <form onSubmit={handleExpenseSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="amount">Amount</Label>
+                    <Label htmlFor="amount">Amount (USD)</Label>
                     <Input
                       id="amount"
                       name="amount"
@@ -554,11 +556,54 @@ const Dashboard = () => {
                       defaultValue={new Date().toISOString().slice(0, 16)}
                     />
                   </div>
-                  <Button type="submit" className="w-full">Add Expense</Button>
+                  <Button type="submit" className="w-full flex justify-center"> {isSubmittingExpense ? <Loader2 className="h-8 w-8 animate-spin" /> : 'Add Expense'} </Button>
                 </form>
               </TabsContent>
               <TabsContent value="upload">
                 <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                    <input
+                      name="invoice"
+                      id="invoice"
+                      className="hidden"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                    <Label
+                      htmlFor="invoice"
+                      className="flex flex-col justify-center items-center gap-2 cursor-pointer"
+                    >
+                      {!isUploadingImage && !image && (
+                      <>
+                        <UploadIcon className="h-8 w-8" />
+                        <span>Click or drag to upload invoice</span>
+                        <span className="text-sm text-muted-foreground">
+                          Supports: JPG and PNG
+                        </span>
+                      </>
+                      )}
+                      {isUploadingImage && <Loader2 className="h-8 w-8 animate-spin" />}
+
+                      {!isUploadingImage && image && (
+                        <div className="w-full flex-col max-h-20 flex justify-center items-center">
+                          <img
+                            src={`data:image/jpeg;base64,${image}`}
+                            alt="Uploaded preview"
+                            className="max-w-xs rounded-lg shadow-md w-fit max-h-16"
+                          />
+                          <button className="mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs" onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setImage(null)
+                            }}>
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </Label>
+                    
+                  </div>
                   <div>
                     <Label htmlFor="amount">Amount (USD)</Label>
                     <Input
@@ -600,50 +645,7 @@ const Dashboard = () => {
                       defaultValue={new Date().toISOString().slice(0, 16)}
                     />
                   </div>
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                    <input
-                      name="invoice"
-                      id="invoice"
-                      className="hidden"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                    <Label
-                      htmlFor="invoice"
-                      className="flex flex-col justify-center items-center gap-2 cursor-pointer"
-                    >
-                      {!isLoading && !image && (
-                      <>
-                        <UploadIcon className="h-8 w-8" />
-                        <span>Click or drag to upload invoice</span>
-                        <span className="text-sm text-muted-foreground">
-                          Supports: JPG and PNG
-                        </span>
-                      </>
-                      )}
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-
-                      {!isLoading && image && (
-                        <div className="w-full flex-col max-h-20 flex justify-center items-center">
-                          <img
-                            src={`data:image/jpeg;base64,${image}`}
-                            alt="Uploaded preview"
-                            className="max-w-xs rounded-lg shadow-md w-fit max-h-16"
-                          />
-                          <button className="mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs" onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              setImage(null)
-                            }}>
-                            Remove
-                          </button>
-                        </div>
-                      )}
-                    </Label>
-                    
-                  </div>
-                  <Button type="submit" className="w-full">Upload & Process</Button>
+                  <Button type="submit" className="w-full flex justify-center"> {isSubmittingExpense ? <Loader2 className="h-8 w-8 animate-spin" /> : 'Add Expense'} </Button>
                 </form>
               </TabsContent>
             </Tabs>
