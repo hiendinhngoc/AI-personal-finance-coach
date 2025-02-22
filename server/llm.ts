@@ -150,11 +150,11 @@ Rules:
       {
         role: "system",
         content: `You are a receipt analyzer. Your task is to extract structured expense data from plain text as specified in JSON SCHEMA.
-      
+
       ---
       JSON SCHEMA
       ${formatInstructions}
-      
+
       ### Instructions:
        - Extract only relevant data.
        - Ensure all values strictly match the schema's data types and format.
@@ -179,11 +179,11 @@ Rules:
         {
           role: "system",
           content: `You are an expert in extracting structured data from raw text.Your task is to convert the given RAW DATA into a JSON object that follows the specified schema.
-      
+
        ---
        ### JSON SCHEMA:
        ${formatInstructions}
-      
+
        ### Instructions:
        - Extract only relevant data.
        - Ensure all values strictly match the schema's data types and format.

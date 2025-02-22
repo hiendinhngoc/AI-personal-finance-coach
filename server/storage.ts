@@ -1,6 +1,5 @@
 import { User, InsertUser, Budget, InsertBudget, Expense, InsertExpense, Notification, users, budgets, expenses, notifications } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { db, eq, and } from "./db";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -55,8 +54,10 @@ export class DatabaseStorage implements IStorage {
     const [budget] = await db
       .select()
       .from(budgets)
-      .where(eq(budgets.userId, userId))
-      .where(eq(budgets.month, month));
+      .where(and(
+        eq(budgets.userId, userId),
+        eq(budgets.month, month)
+      ));
     return budget;
   }
 
@@ -89,14 +90,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpense(userId: number, insertExpense: InsertExpense): Promise<Expense> {
-    const [expense] = await db
-      .insert(expenses)
-      .values({
-        ...insertExpense,
-        userId,
-        date: new Date(),
-      })
-      .returning();
+    // Get current month's budget
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const budget = await this.getBudget(userId, currentMonth);
+
+    if (!budget) {
+      throw new Error("No budget found for the current month");
+    }
+
+    // Calculate new remaining amount
+    const newRemainingAmount = budget.remainingAmount - insertExpense.amount;
+
+    if (newRemainingAmount < 0) {
+      throw new Error("Expense amount exceeds remaining budget");
+    }
+
+    // Start a transaction to ensure both expense creation and budget update succeed
+    const [expense] = await db.transaction(async (tx) => {
+      // Create the expense
+      const [newExpense] = await tx
+        .insert(expenses)
+        .values({
+          ...insertExpense,
+          userId,
+          date: new Date(),
+        })
+        .returning();
+
+      // Update the budget's remaining amount
+      await tx
+        .update(budgets)
+        .set({ remainingAmount: newRemainingAmount })
+        .where(eq(budgets.id, budget.id));
+
+      return [newExpense];
+    });
+
     return expense;
   }
 
