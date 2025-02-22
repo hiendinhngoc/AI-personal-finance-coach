@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
-import { generateResponse } from "./llm";
+import { generateTextResponse, generateVisionResponse } from "./llm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -68,11 +68,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/test-ai", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { prompt } = req.body;
-      if (!prompt) {
-        return res.status(400).json({ error: "Prompt is required" });
+      const { prompt, image } = req.body;
+
+      if (!prompt && !image) {
+        return res.status(400).json({ error: "Prompt or image is required" });
       }
-      const response = await generateResponse(prompt);
+
+      let response;
+      if (image) {
+        response = await generateVisionResponse(image, prompt);
+      } else {
+        response = await generateTextResponse(prompt);
+      }
+
       res.json({ response });
     } catch (error) {
       res.status(500).json({ error: "Failed to generate response" });
