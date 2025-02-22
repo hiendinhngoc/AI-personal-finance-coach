@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BellIcon, PlusIcon, LogOutIcon } from "lucide-react";
+import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon } from "lucide-react";
 import type { Budget, Expense, Notification } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
@@ -22,17 +23,27 @@ const EXPENSE_CATEGORIES = [
   "Other"
 ];
 
+const TIME_FILTERS = {
+  TODAY: "today",
+  WEEK: "week",
+  MONTH: "month"
+} as const;
+
+type TimeFilter = typeof TIME_FILTERS[keyof typeof TIME_FILTERS];
+
 export default function Dashboard() {
   const { toast } = useToast();
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
   const [month] = useState(new Date().toISOString().slice(0, 7));
   const { user, logoutMutation } = useAuth();
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
 
   const { data: budget } = useQuery<Budget>({
     queryKey: [`/api/budget/${month}`],
   });
 
   const { data: expenses } = useQuery<Expense[]>({
-    queryKey: [`/api/expenses/${month}`],
+    queryKey: [`/api/expenses/${timeFilter}`],
   });
 
   const { data: notifications } = useQuery<Notification[]>({
@@ -53,15 +64,20 @@ export default function Dashboard() {
   });
 
   const createExpenseMutation = useMutation({
-    mutationFn: async (data: { amount: number; category: string }) => {
-      await apiRequest("POST", "/api/expenses", {
-        ...data,
-        date: new Date().toISOString(),
-      });
+    mutationFn: async (data: { amount: number; category: string; date: string; invoice?: File }) => {
+      const formData = new FormData();
+      formData.append('amount', data.amount.toString());
+      formData.append('category', data.category);
+      formData.append('date', data.date);
+      if (data.invoice) {
+        formData.append('invoice', data.invoice);
+      }
+      await apiRequest("POST", "/api/expenses", formData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses/${month}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/expenses/${timeFilter}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/budget/${month}`] });
+      setExpenseModalOpen(false);
       toast({ title: "Expense logged successfully" });
     },
   });
@@ -70,6 +86,20 @@ export default function Dashboard() {
     date: new Date(expense.date).toLocaleDateString(),
     amount: expense.amount
   })) || [];
+
+  const handleExpenseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const amount = parseFloat(form.amount.value);
+    const category = form.category.value;
+    const date = form.date.value || new Date().toISOString();
+    const invoice = form.invoice?.files?.[0];
+
+    if (amount > 0 && category) {
+      createExpenseMutation.mutate({ amount, category, date, invoice });
+      form.reset();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,75 +208,198 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Add Expense</CardTitle>
+              <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const form = e.target as HTMLFormElement;
-                  const amount = parseFloat(form.amount.value);
-                  const category = form.category.value;
-                  if (amount > 0 && category) {
-                    createExpenseMutation.mutate({ amount, category });
-                    form.reset();
-                  }
-                }}
-                className="space-y-4"
-              >
-                <div>
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Select name="category" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EXPENSE_CATEGORIES.map(category => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit">Add Expense</Button>
-              </form>
+              <Dialog open={expenseModalOpen} onOpenChange={setExpenseModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full">
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add Expense
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Expense</DialogTitle>
+                  </DialogHeader>
+                  <Tabs defaultValue="form" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="form">Manual Entry</TabsTrigger>
+                      <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="form">
+                      <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="category">Category</Label>
+                          <Select name="category" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EXPENSE_CATEGORIES.map(category => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="date">Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="datetime-local"
+                            defaultValue={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
+                        <Button type="submit" className="w-full">Add Expense</Button>
+                      </form>
+                    </TabsContent>
+                    <TabsContent value="upload">
+                      <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="category">Category</Label>
+                          <Select name="category" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EXPENSE_CATEGORIES.map(category => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="date">Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="datetime-local"
+                            defaultValue={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
+                        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                          <input
+                            type="file"
+                            name="invoice"
+                            id="invoice"
+                            className="hidden"
+                            accept="image/*"
+                          />
+                          <Label
+                            htmlFor="invoice"
+                            className="flex flex-col items-center gap-2 cursor-pointer"
+                          >
+                            <UploadIcon className="h-8 w-8" />
+                            <span>Click or drag to upload invoice</span>
+                            <span className="text-sm text-muted-foreground">
+                              Supports: JPG, PNG, PDF
+                            </span>
+                          </Label>
+                        </div>
+                        <Button type="submit" className="w-full">Upload & Process</Button>
+                      </form>
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </div>
 
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Expense Trend</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Expenses & Invoices</CardTitle>
+              <div className="flex gap-2">
+                {Object.entries(TIME_FILTERS).map(([key, value]) => (
+                  <Button
+                    key={value}
+                    variant={timeFilter === value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTimeFilter(value as TimeFilter)}
+                  >
+                    {key.charAt(0) + key.slice(1).toLowerCase()}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <Tabs defaultValue="list" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="list">
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Invoices
+                </TabsTrigger>
+                <TabsTrigger value="chart">
+                  <BarChart3Icon className="h-4 w-4 mr-2" />
+                  Analytics
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="list">
+                <div className="space-y-4">
+                  {expenses?.map(expense => (
+                    <div
+                      key={expense.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted"
+                    >
+                      <div>
+                        <p className="font-medium">{expense.category}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(expense.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <p className="font-medium">${expense.amount}</p>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="chart">
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
