@@ -53,6 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(costCuttingMeasures);
   });
 
+
   app.get("/api/expenses/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const expenses = await storage.getExpenses(req.user.id, req.params.month);
@@ -154,6 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
     try {
       const formatInstructions = `
+      Respond with a valid JSON objects in the following format:
       {
         "main": "Clear",
         "description": "Sunny with no clouds",
@@ -162,11 +164,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "windSpeed": 5.2
       }
       Rules:
-      - main: Must be one of the following: "Clear", "Clouds", "Rain", "Snow", or "Thunderstorm".
-      - description: A short text describing the weather conditions.
-      - temp: Temperature in Fahrenheit as a number.
-      - humidity: Humidity percentage as a number.
-      - windSpeed: Wind speed in mph as a number.
+      - main as string: Must be one of the following: "Clear", "Clouds", "Rain", "Snow", or "Thunderstorm".
+      - description as string: A short text describing the weather conditions.
+      - temp as a number: Temperature in Fahrenheit as a number.
+      - humidity as a number: Humidity percentage as a number.
+      - windSpeed as a number: Wind speed in mph as a number.
       `;
       const response = await textLLM.invoke([
         {
@@ -178,7 +180,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           ---
           OUTPUT REQUIREMENTS:
-          - Do NOT include any additional text, explanations, or metadata—return only the JSON object.`,
+          ### Instructions:
+          - Extract only relevant data.
+          - Ensure all values strictly match the schema's data types and format.
+          - Do NOT add any extra information or explanations.
+          - Respond ONLY with a valid JSON object that conforms to the schema`
         },
         {
           role: "user",
