@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
-import { generateTextResponse, generateVisionResponse } from "./llm";
+import { ExpenseBudgetInformation, generateCostCuttingMeasureAdviseResponse, generateVisionResponse } from "./llm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -78,7 +78,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (image) {
         response = await generateVisionResponse(image, prompt);
       } else {
-        response = await generateTextResponse(prompt);
+        const expenseBudgetInformation: ExpenseBudgetInformation = {
+          budget: 10000000,
+          month: 1,
+          totalExpenses: 13000000,
+          expenseDetails: [
+            { category: "food", amount: 3000000 },
+            { category: "education", amount: 7000000 },
+            { category: "utitly", amount: 3000000 }
+          ]
+        };
+        response = await generateCostCuttingMeasureAdviseResponse(expenseBudgetInformation);
       }
 
       res.json({ response });
