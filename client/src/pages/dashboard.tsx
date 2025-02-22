@@ -464,22 +464,6 @@ const Dashboard = () => {
                 Add Expense
               </Button>
 
-              <div className='relative'>
-                <Button
-                  variant='ghost'
-                  className='relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent group'
-                  onClick={() => {
-                    /* handle notifications */
-                  }}
-                >
-                  <BellIcon className='h-4 w-4 group-hover:animate-bounce' />
-                  {notifications &&
-                    notifications.filter((n) => !n.read).length > 0 && (
-                      <span className='absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300' />
-                    )}
-                </Button>
-              </div>
-
               <Button
                 variant='ghost'
                 className='flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'
@@ -597,11 +581,10 @@ const Dashboard = () => {
                     })}
                   </h3>
 
-                  <div className='grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400'>
+                  <div className='grid grid-cols-3 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400'>
                     <div>Category</div>
                     <div>Date</div>
                     <div className='text-right'>Amount</div>
-                    <div className='text-right'>Currency</div>
                   </div>
 
                   <div className='space-y-2'>
@@ -615,7 +598,7 @@ const Dashboard = () => {
                       return (
                         <div
                           key={expense.id}
-                          className='group grid grid-cols-4 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]'
+                          className='group grid grid-cols-3 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]'
                         >
                           <div className='flex items-center gap-2'>
                             <div
@@ -637,12 +620,6 @@ const Dashboard = () => {
                           <div className='flex items-center justify-end'>
                             <span className='text-lg font-semibold tracking-tight'>
                               {formatCurrency(expense.amount)}
-                            </span>
-                          </div>
-
-                          <div className='flex items-center justify-end'>
-                            <span className='text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                              USD
                             </span>
                           </div>
                         </div>
