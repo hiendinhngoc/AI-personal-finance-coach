@@ -48,7 +48,6 @@ import type {
   InsertExpense,
 } from "@shared/schema";
 import type { LucideIcon } from "lucide-react";
-import type { ExpenseItem } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -154,10 +153,10 @@ const Dashboard = () => {
   const [month] = useState(new Date().toISOString().slice(0, 7));
   const { user, logoutMutation } = useAuth();
   const [image, setImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setisUploadingImage] = useState(false);
   const [amount, setAmount] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -178,7 +177,7 @@ const Dashboard = () => {
   };
 
   const handleSubmitImage = async (image: string) => {
-    setIsLoading(true);
+    setisUploadingImage(true);
     try {
       const res = await apiRequest("POST", "/api/test-ai", { prompt, image });
       const data = await res.json();
@@ -211,7 +210,7 @@ const Dashboard = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setisUploadingImage(false);
     }
   };
 
@@ -271,8 +270,9 @@ const Dashboard = () => {
         queryKey: [`/api/expenses/${timeFilter}`],
       });
       queryClient.invalidateQueries({ queryKey: [`/api/budget/${month}`] });
-      setExpenseModalOpen(false);
+      setShowExpenseModal(false);
       toast({ title: "Expense logged successfully" });
+      setIsSubmittingExpense(false);
     },
     onError: (error: any) => {
       console.error("Expense submission error:", error);
@@ -281,11 +281,13 @@ const Dashboard = () => {
         description: error.message || "Please try again",
         variant: "destructive",
       });
+      setIsSubmittingExpense(false);
     },
   });
 
   const handleExpenseSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmittingExpense(true);
     const form = e.target as HTMLFormElement;
     const amount = parseFloat(form.amount.value);
     const category = form.category.value;
@@ -348,7 +350,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                               dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                         dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
                 onClick={() => setShowBudgetModal(true)}
               >
                 <PlusIcon className="h-4 w-4" />
@@ -358,7 +360,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                               dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                         dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
                 onClick={() => setShowExpenseModal(true)}
               >
                 <PlusIcon className="h-4 w-4" />
@@ -369,7 +371,7 @@ const Dashboard = () => {
                 <Button
                   variant="ghost"
                   className="relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                                 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                           dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
                   onClick={() => {
                     /* handle notifications */
                   }}
@@ -385,7 +387,7 @@ const Dashboard = () => {
               <Button
                 variant="ghost"
                 className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-white/20 
-                               dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
+                         dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
                 onClick={() => logoutMutation.mutate()}
               >
                 <LogOutIcon className="h-4 w-4" />
@@ -401,8 +403,8 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div
             className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 
-                             shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
-                             hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
+                       shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
+                       hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Monthly Budget
@@ -414,8 +416,8 @@ const Dashboard = () => {
 
           <div
             className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 
-                             shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
-                             hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
+                       shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
+                       hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Total Expenses
@@ -430,8 +432,8 @@ const Dashboard = () => {
 
           <div
             className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 
-                             shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
-                             hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
+                       shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300
+                       hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]"
           >
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Remaining Budget
@@ -451,7 +453,7 @@ const Dashboard = () => {
         {/* Expenses Table */}
         <div
           className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl 
-                           shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden"
+                     shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden"
         >
           <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
@@ -493,16 +495,16 @@ const Dashboard = () => {
                     <div
                       key={expense.id}
                       className="group grid grid-cols-4 gap-4 p-4 rounded-xl 
-                                     backdrop-blur-sm bg-white/40 dark:bg-gray-800/40
-                                     hover:bg-white/60 dark:hover:bg-gray-800/60
-                                     transition-all duration-300 transform hover:scale-[1.02]
-                                     hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                               backdrop-blur-sm bg-white/40 dark:bg-gray-800/40
+                               hover:bg-white/60 dark:hover:bg-gray-800/60
+                               transition-all duration-300 transform hover:scale-[1.02]
+                               hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
                     >
                       <div className="flex items-center gap-2">
                         <div
                           className={`flex items-center gap-2 px-3 py-1 rounded-full
-                                          ${categoryConfig.gradient} ${categoryConfig.textColor}
-                                          transition-all duration-300 ${categoryConfig.hoverGradient}`}
+                                    ${categoryConfig.gradient} ${categoryConfig.textColor}
+                                    transition-all duration-300 ${categoryConfig.hoverGradient}`}
                         >
                           <CategoryIcon className="h-4 w-4" />
                           <span className="font-medium">
@@ -526,7 +528,7 @@ const Dashboard = () => {
                       <div className="flex items-center justify-end">
                         <span
                           className="text-sm text-gray-600 dark:text-gray-300 font-medium
-                                           opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                     opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                         >
                           USD
                         </span>
@@ -564,7 +566,7 @@ const Dashboard = () => {
               className="space-y-4"
             >
               <div>
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">Amount (USD)</Label>
                 <Input
                   id="amount"
                   name="amount"
@@ -600,7 +602,7 @@ const Dashboard = () => {
               <TabsContent value="form">
                 <form onSubmit={handleExpenseSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="amount">Amount</Label>
+                    <Label htmlFor="amount">Amount (USD)</Label>
                     <Input
                       id="amount"
                       name="amount"
@@ -634,13 +636,65 @@ const Dashboard = () => {
                       defaultValue={new Date().toISOString().slice(0, 16)}
                     />
                   </div>
-                  <Button type="submit" className="w-full">
-                    Add Expense
+                  <Button type="submit" className="w-full flex justify-center">
+                    {" "}
+                    {isSubmittingExpense ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      "Add Expense"
+                    )}{" "}
                   </Button>
                 </form>
               </TabsContent>
               <TabsContent value="upload">
                 <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                    <input
+                      name="invoice"
+                      id="invoice"
+                      className="hidden"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                    <Label
+                      htmlFor="invoice"
+                      className="flex flex-col justify-center items-center gap-2 cursor-pointer"
+                    >
+                      {!isUploadingImage && !image && (
+                        <>
+                          <UploadIcon className="h-8 w-8" />
+                          <span>Click or drag to upload invoice</span>
+                          <span className="text-sm text-muted-foreground">
+                            Supports: JPG and PNG
+                          </span>
+                        </>
+                      )}
+                      {isUploadingImage && (
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                      )}
+
+                      {!isUploadingImage && image && (
+                        <div className="w-full flex-col max-h-20 flex justify-center items-center">
+                          <img
+                            src={`data:image/jpeg;base64,${image}`}
+                            alt="Uploaded preview"
+                            className="max-w-xs rounded-lg shadow-md w-fit max-h-16"
+                          />
+                          <button
+                            className="mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setImage(null);
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </Label>
+                  </div>
                   <div>
                     <Label htmlFor="amount">Amount (USD)</Label>
                     <Input
@@ -683,55 +737,13 @@ const Dashboard = () => {
                       defaultValue={new Date().toISOString().slice(0, 16)}
                     />
                   </div>
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                    <input
-                      name="invoice"
-                      id="invoice"
-                      className="hidden"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                    <Label
-                      htmlFor="invoice"
-                      className="flex flex-col justify-center items-center gap-2 cursor-pointer"
-                    >
-                      {!isLoading && !image && (
-                        <>
-                          <UploadIcon className="h-8 w-8" />
-                          <span>Click or drag to upload invoice</span>
-                          <span className="text-sm text-muted-foreground">
-                            Supports: JPG and PNG
-                          </span>
-                        </>
-                      )}
-                      {isLoading && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-
-                      {!isLoading && image && (
-                        <div className="w-full flex-col max-h-20 flex justify-center items-center">
-                          <img
-                            src={`data:image/jpeg;base64,${image}`}
-                            alt="Uploaded preview"
-                            className="max-w-xs rounded-lg shadow-md w-fit max-h-16"
-                          />
-                          <button
-                            className="mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setImage(null);
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )}
-                    </Label>
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Upload & Process
+                  <Button type="submit" className="w-full flex justify-center">
+                    {" "}
+                    {isSubmittingExpense ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      "Add Expense"
+                    )}{" "}
                   </Button>
                 </form>
               </TabsContent>

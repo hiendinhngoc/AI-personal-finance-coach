@@ -3,7 +3,11 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertBudgetSchema, insertExpenseSchema } from "@shared/schema";
-import { generateTextResponse, generateVisionResponse } from "./llm";
+import {
+  ExpenseBudgetInformation,
+  generateCostCuttingMeasureAdviseResponse,
+  generateVisionResponse,
+} from "./llm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -39,14 +43,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const expense = await storage.createExpense(req.user.id, parseResult.data);
 
     // Update remaining budget
-    const budget = await storage.getBudget(req.user.id, new Date().toISOString().slice(0, 7));
+    const budget = await storage.getBudget(
+      req.user.id,
+      new Date().toISOString().slice(0, 7),
+    );
     if (budget) {
       const newRemainingAmount = budget.remainingAmount - expense.amount;
       await storage.updateBudget(budget.id, newRemainingAmount);
       if (newRemainingAmount < budget.totalAmount * 0.2) {
         await storage.createNotification(
           req.user.id,
-          "Warning: You have less than 20% of your budget remaining"
+          "Warning: You have less than 20% of your budget remaining",
         );
       }
     }
@@ -79,7 +86,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (image) {
         response = await generateVisionResponse(image, prompt);
       } else {
-        response = await generateTextResponse(prompt);
+        const expenseBudgetInformation: ExpenseBudgetInformation = {
+          budget: 10000000,
+          month: 1,
+          totalExpenses: 13000000,
+          expenseDetails: [
+            { category: "food", amount: 3000000 },
+            { category: "education", amount: 7000000 },
+            { category: "utitly", amount: 3000000 },
+          ],
+        };
+        response = await generateCostCuttingMeasureAdviseResponse(
+          expenseBudgetInformation,
+        );
       }
 
       res.json({ response });
