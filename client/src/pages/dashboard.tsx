@@ -12,7 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon } from "lucide-react";
+import { 
+  BellIcon, LogOutIcon, PlusIcon, UploadIcon, ImageIcon, BarChart3Icon,
+  ShoppingBasketIcon, CarIcon, HomeIcon, GamepadIcon, MoreHorizontalIcon
+} from "lucide-react";
 import type { Budget, Expense, Notification, InsertExpense } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
@@ -29,13 +32,51 @@ const TIME_FILTERS = {
   MONTH: "month"
 } as const;
 
-const CHART_COLORS = [
-  "#FF6B6B",
-  "#4ECDC4",
-  "#45B7D1",
-  "#96CEB4",
-  "#FFEEAD"
-];
+// Add type for category icons
+type IconComponent = typeof BellIcon;
+
+const CATEGORY_CONFIG = {
+  Transportation: {
+    color: "#3B82F6",
+    gradient: "bg-gradient-to-r from-blue-400 to-blue-600",
+    hoverGradient: "hover:from-blue-500 hover:to-blue-700",
+    textColor: "text-white",
+    icon: CarIcon
+  },
+  Housing: {
+    color: "#10B981",
+    gradient: "bg-gradient-to-r from-green-400 to-green-600",
+    hoverGradient: "hover:from-green-500 hover:to-green-700",
+    textColor: "text-white",
+    icon: HomeIcon
+  },
+  Food: {
+    color: "#F59E0B",
+    gradient: "bg-gradient-to-r from-orange-400 to-orange-600",
+    hoverGradient: "hover:from-orange-500 hover:to-orange-700",
+    textColor: "text-white",
+    icon: ShoppingBasketIcon
+  },
+  Entertainment: {
+    color: "#8B5CF6",
+    gradient: "bg-gradient-to-r from-purple-400 to-purple-600",
+    hoverGradient: "hover:from-purple-500 hover:to-purple-700",
+    textColor: "text-white",
+    icon: GamepadIcon
+  },
+  Other: {
+    color: "#6B7280",
+    gradient: "bg-gradient-to-r from-gray-400 to-gray-600",
+    hoverGradient: "hover:from-gray-500 hover:to-gray-700",
+    textColor: "text-white",
+    icon: MoreHorizontalIcon
+  }
+} as const;
+
+// Replace CATEGORY_ICONS with new configuration
+const CATEGORY_ICONS = Object.fromEntries(
+  Object.entries(CATEGORY_CONFIG).map(([key, value]) => [key, value.icon])
+) as Record<string, IconComponent>;
 
 type TimeFilter = typeof TIME_FILTERS[keyof typeof TIME_FILTERS];
 
@@ -45,6 +86,25 @@ const getGreeting = () => {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
+};
+
+// Add a currency formatter helper
+const formatCurrency = (amount: number, currency = 'USD') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2
+  }).format(amount);
+};
+
+// Add a date formatter helper
+const formatDate = (date: Date | string) => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
+  });
 };
 
 const Dashboard = () => {
@@ -147,53 +207,50 @@ const Dashboard = () => {
   }, [] as { category: string; value: number }[]) || [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-            <div className="flex items-center space-x-3">
-              <button
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+      {/* Modern Header */}
+      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-16 flex items-center justify-between">
+            <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+            
+            <div className="flex items-center space-x-4">
+              <Button
                 onClick={() => setShowBudgetModal(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                variant="ghost"
+                className="hover:bg-primary/10 transition-colors"
               >
-                <PlusIcon className="h-4 w-4 mr-1" />
+                <PlusIcon className="h-4 w-4 mr-2" />
                 Set Budget
-              </button>
-              <button
+              </Button>
+
+              <Button
                 onClick={() => setShowExpenseModal(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg shadow-primary/25"
               >
-                <PlusIcon className="h-4 w-4 mr-1" />
+                <PlusIcon className="h-4 w-4 mr-2" />
                 Add Expense
-              </button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <BellIcon className="h-4 w-4 mr-2" />
-                    {notifications?.filter(n => !n.read).length || 0}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Notifications</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    {notifications?.map(notification => (
-                      <div key={notification.id} className="p-4 bg-muted rounded-lg">
-                        <p>{notification.message}</p>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(notification.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
+              </Button>
+
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  className="relative"
+                  onClick={() => {/* handle notifications */}}
+                >
+                  <BellIcon className="h-4 w-4" />
+                  {(notifications?.filter(n => !n.read).length || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+                  )}
+                </Button>
+              </div>
+
               <Button 
-                variant="outline"
+                variant="ghost"
                 onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
+                className="text-gray-600 dark:text-gray-300"
               >
                 <LogOutIcon className="h-4 w-4 mr-2" />
                 Logout
@@ -204,43 +261,41 @@ const Dashboard = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-medium text-gray-900">
-              {getGreeting()}, {user?.username}
-            </h2>
+        {/* Budget Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="backdrop-blur-xl bg-white/50 dark:bg-gray-800/50 rounded-2xl p-6 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Monthly Budget</h3>
+            <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {formatCurrency(budget?.totalAmount || 0)}
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-500">Monthly Budget</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">
-                ${budget?.totalAmount.toFixed(2) || 0}
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Expenses</h3>
-              <p className="mt-1 text-2xl font-semibold text-gray-900">
-                ${expenses?.reduce((acc, expense) => acc + expense.amount, 0).toFixed(2)}
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-500">Remaining Budget</h3>
-              <p className={`mt-1 text-2xl font-semibold ${
-                budget?.remainingAmount >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                ${budget?.remainingAmount.toFixed(2) || 0}
-              </p>
-            </div>
+
+          <div className="backdrop-blur-xl bg-white/50 dark:bg-gray-800/50 rounded-2xl p-6 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Expenses</h3>
+            <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+              {formatCurrency(expenses?.reduce((acc, expense) => acc + expense.amount, 0) || 0)}
+            </p>
+          </div>
+
+          <div className="backdrop-blur-xl bg-white/50 dark:bg-gray-800/50 rounded-2xl p-6 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Remaining Budget</h3>
+            <p className={`mt-2 text-3xl font-bold ${
+              (budget?.remainingAmount || 0) >= 0 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                : 'bg-gradient-to-r from-red-500 to-pink-500 animate-pulse'
+              } bg-clip-text text-transparent`}>
+              {formatCurrency(budget?.remainingAmount || 0)}
+            </p>
           </div>
         </div>
 
-        <Card className="mt-8">
-          <CardHeader>
+        {/* Expenses Table */}
+        <div className="backdrop-blur-xl bg-white/50 dark:bg-gray-800/50 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+          <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
-              <CardTitle>Expenses & Invoices</CardTitle>
+              <h2 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                Expenses & Invoices
+              </h2>
               <div className="flex gap-2">
                 {Object.entries(TIME_FILTERS).map(([key, value]) => (
                   <Button
@@ -248,77 +303,82 @@ const Dashboard = () => {
                     variant={timeFilter === value ? "default" : "outline"}
                     size="sm"
                     onClick={() => setTimeFilter(value as TimeFilter)}
+                    className={timeFilter === value ? 'bg-gradient-to-r from-primary to-primary/80 text-white' : ''}
                   >
                     {key.charAt(0) + key.slice(1).toLowerCase()}
                   </Button>
                 ))}
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="list" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="list">
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Invoices
-                </TabsTrigger>
-                <TabsTrigger value="chart">
-                  <BarChart3Icon className="h-4 w-4 mr-2" />
-                  Analytics
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="list">
-                <div className="space-y-4">
-                  {expenses?.map(expense => (
+          </div>
+
+          <div className="p-6">
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <div>Category</div>
+                <div>Date</div>
+                <div className="text-right">Amount</div>
+                <div className="text-right">Currency</div>
+              </div>
+
+              <div className="space-y-3">
+                {expenses?.map(expense => {
+                  const categoryConfig = CATEGORY_CONFIG[expense.category as keyof typeof CATEGORY_CONFIG];
+                  const CategoryIcon = categoryConfig.icon;
+                  
+                  return (
                     <div
                       key={expense.id}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted"
+                      className="group relative grid grid-cols-4 gap-4 p-4 rounded-xl bg-white/50 dark:bg-gray-800/50
+                               hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 ease-out
+                               transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-900/50"
                     >
-                      <div>
-                        <p className="font-medium">{expense.category}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString()}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${categoryConfig.gradient} ${categoryConfig.textColor}
+                                      transition-all duration-300 ${categoryConfig.hoverGradient}`}>
+                          <CategoryIcon className="h-4 w-4" />
+                          <span className="font-medium">{expense.category}</span>
+                        </div>
                       </div>
-                      <p className="font-medium">${expense.amount}</p>
+                      
+                      <div className="flex items-center">
+                        <time className="text-sm text-gray-600 dark:text-gray-300">
+                          {formatDate(expense.date)}
+                        </time>
+                      </div>
+                      
+                      <div className="flex items-center justify-end">
+                        <span className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+                          {formatCurrency(expense.amount)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-end">
+                        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                          USD
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="chart">
-                <div className="h-[400px] flex items-center justify-center">
-                  {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={chartData}
-                          dataKey="value"
-                          nameKey="category"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={150}
-                          label={({ category, percent }) => 
-                            `${category}: ${(percent * 100).toFixed(0)}%`
-                          }
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell 
-                              key={`cell-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-muted-foreground">No expenses to display</p>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                  );
+                })}
+
+                {(!expenses || expenses.length === 0) && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-500 dark:text-gray-400">No expenses to display</div>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4 hover:bg-primary/10"
+                      onClick={() => setShowExpenseModal(true)}
+                    >
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      Add Your First Expense
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
 
       {showBudgetModal && (
