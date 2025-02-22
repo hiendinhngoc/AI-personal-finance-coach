@@ -22,11 +22,12 @@ export default function HomePage() {
       <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='h-16 flex items-center justify-between'>
-            <Link href="/">
+            <div className="flex items-center space-x-4">
+              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto" />
               <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
                 AI Personal Finance Coach
               </h1>
-            </Link>
+            </div>
             <div className='flex items-center space-x-4'>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -54,7 +55,7 @@ export default function HomePage() {
             expense tracking features.
           </p>
           <Link href="/auth">
-            <Button size="lg" className='mt-8 backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'>
+            <Button size="lg" className='mt-8 backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black border-2 border-black dark:border-white dark:hover:bg-gray-800/50 rounded-full transition-all duration-300'>
               Get Started
               <ArrowRightIcon className='ml-2 h-4 w-4' />
             </Button>
@@ -86,7 +87,7 @@ export default function HomePage() {
           <Card className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px] space-y-4'>
             <BellIcon className='h-12 w-12 text-primary' />
             <h2 className='text-2xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-              Smart Alerts
+              Smart Suggestions
             </h2>
             <p className='text-muted-foreground'>
               AI analyzes your expenses and provides personalized recommendations

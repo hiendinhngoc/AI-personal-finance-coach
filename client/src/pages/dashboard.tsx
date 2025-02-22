@@ -167,7 +167,7 @@ const WEATHER_ICONS = {
   Thunderstorm: CloudLightningIcon,
 } as const;
 
-const Dashboard = () => {
+export default function Dashboard() {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
   const [month] = useState(new Date().toISOString().slice(0, 7));
@@ -414,7 +414,6 @@ const Dashboard = () => {
   };
 
 
-
   useEffect(() => {
     if (image) {
       handleSubmitImage(image);
@@ -430,9 +429,12 @@ const Dashboard = () => {
       <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='h-16 flex items-center justify-between'>
-            <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-              Dashboard
-            </h1>
+            <div className="flex items-center space-x-4">
+              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto" />
+              <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+                AI Personal Finance Coach
+              </h1>
+            </div>
 
             <div className='flex items-center space-x-4'>
               <button
@@ -479,26 +481,22 @@ const Dashboard = () => {
 
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
         <div className='flex items-center justify-between'>
-          <div className='flex items-center space-x-4'>
-            <h2 className='text-2xl font-semibold'>
-              {getGreeting()}, {user?.username}
-            </h2>
+          <h2 className='text-2xl font-semibold'>
+            {getGreeting()}, {user?.username}
+          </h2>
+          {weather && (
             <div className='flex items-center space-x-2 text-muted-foreground'>
-              {weather && (
-                <>
-                  {(() => {
-                    const WeatherIcon =
-                      WEATHER_ICONS[
-                        weather.main as keyof typeof WEATHER_ICONS
-                      ] || CloudIcon;
-                    return <WeatherIcon className='h-5 w-5' />;
-                  })()}
-                  <span>{weather.description}</span>
-                  <span>{Math.round(weather.temp)}°F</span>
-                </>
-              )}
+              {(() => {
+                const WeatherIcon =
+                  WEATHER_ICONS[
+                    weather.main as keyof typeof WEATHER_ICONS
+                  ] || CloudIcon;
+                return <WeatherIcon className='h-5 w-5' />;
+              })()}
+              <span>{weather.description}</span>
+              <span>{Math.round(weather.temp)}°F</span>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -937,6 +935,4 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
-
-export default Dashboard;
+}

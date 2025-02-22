@@ -61,9 +61,12 @@ export default function AuthPage() {
       <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='h-16 flex items-center justify-between'>
-            <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-              AI Personal Finance Coach
-            </h1>
+            <div className="flex items-center space-x-4">
+              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto" />
+              <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+                AI Personal Finance Coach
+              </h1>
+            </div>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
@@ -138,7 +141,7 @@ export default function AuthPage() {
                       />
                       <Button
                         type="submit"
-                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black border-2 border-black dark:border-white dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
                         disabled={loginMutation.isPending}
                       >
                         Login
@@ -186,7 +189,7 @@ export default function AuthPage() {
                       />
                       <Button
                         type="submit"
-                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                        className="w-full backdrop-blur-md bg-white/10 hover:bg-primary/20 text-black hover:text-black border-2 border-black dark:border-white dark:hover:bg-gray-800/50 rounded-full transition-all duration-300"
                         disabled={registerMutation.isPending}
                       >
                         Register
