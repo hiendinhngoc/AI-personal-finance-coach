@@ -10,13 +10,13 @@ import {
   CloudLightningIcon,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import Markdown from 'react-markdown'
+import Markdown from "react-markdown";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import remarkGfm from 'remark-gfm'
+import remarkGfm from "remark-gfm";
 import {
   Dialog,
   DialogContent,
@@ -167,7 +167,7 @@ const WEATHER_ICONS = {
   Thunderstorm: CloudLightningIcon,
 } as const;
 
-const Dashboard = () => {
+export default function Dashboard() {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
   const [month] = useState(new Date().toISOString().slice(0, 7));
@@ -273,7 +273,13 @@ const Dashboard = () => {
   });
 
   const createChatMutation = useMutation({
-    mutationFn: async ({ message, threadId }: { message: string; threadId: number }) => {
+    mutationFn: async ({
+      message,
+      threadId,
+    }: {
+      message: string;
+      threadId: number;
+    }) => {
       const response = await apiRequest("POST", "/api/chat", {
         message,
         threadId,
@@ -281,19 +287,18 @@ const Dashboard = () => {
       return response;
     },
     onSuccess: async (data: any) => {
-      const parsedData = await data.json()
-      console.log("parsedData", parsedData.message)
+      const parsedData = await data.json();
+      console.log("parsedData", parsedData.message);
       toast({ title: "Message sent successfully" });
     },
     onError: (error) => {
-      toast({ 
-        title: "Error sending message", 
+      toast({
+        title: "Error sending message",
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
-  
 
   const createExpenseMutation = useMutation({
     mutationFn: async (data: {
@@ -309,6 +314,7 @@ const Dashboard = () => {
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
         receiptUrl: "",
+        date: new Date(data.date),
       };
 
       if (data.invoice) {
@@ -411,12 +417,6 @@ const Dashboard = () => {
   const sortedGroups = Object.entries(groupedExpenses).sort((a, b) =>
     b[0].localeCompare(a[0])
   );
-  const handleSubmitMessage = async () => {
-    const response = createChatMutation.mutate({ message: "What is my current financial situation?", threadId: 1 });
-
-  };
-
-
 
   useEffect(() => {
     if (image) {
@@ -424,18 +424,17 @@ const Dashboard = () => {
     }
   }, [image]);
 
-  useEffect(() => {
-    handleSubmitMessage();
-  }, [])
-
   return (
     <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300'>
       <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='h-16 flex items-center justify-between'>
-            <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
-              Dashboard
-            </h1>
+            <div className='flex items-center space-x-4'>
+              <img src='/cp.jpg' alt='Company Logo' className='h-8 w-auto' />
+              <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+                AI Personal Finance Coach
+              </h1>
+            </div>
 
             <div className='flex items-center space-x-4'>
               <button
@@ -467,22 +466,6 @@ const Dashboard = () => {
                 Add Expense
               </Button>
 
-              <div className='relative'>
-                <Button
-                  variant='ghost'
-                  className='relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent group'
-                  onClick={() => {
-                    /* handle notifications */
-                  }}
-                >
-                  <BellIcon className='h-4 w-4 group-hover:animate-bounce' />
-                  {notifications &&
-                    notifications.filter((n) => !n.read).length > 0 && (
-                      <span className='absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300' />
-                    )}
-                </Button>
-              </div>
-
               <Button
                 variant='ghost'
                 className='flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'
@@ -498,26 +481,21 @@ const Dashboard = () => {
 
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
         <div className='flex items-center justify-between'>
-          <div className='flex items-center space-x-4'>
-            <h2 className='text-2xl font-semibold'>
-              {getGreeting()}, {user?.username}
-            </h2>
+          <h2 className='text-2xl font-semibold'>
+            {getGreeting()}, {user?.username}
+          </h2>
+          {weather && (
             <div className='flex items-center space-x-2 text-muted-foreground'>
-              {weather && (
-                <>
-                  {(() => {
-                    const WeatherIcon =
-                      WEATHER_ICONS[
-                        weather.main as keyof typeof WEATHER_ICONS
-                      ] || CloudIcon;
-                    return <WeatherIcon className='h-5 w-5' />;
-                  })()}
-                  <span>{weather.description}</span>
-                  <span>{Math.round(weather.temp)}°F</span>
-                </>
-              )}
+              {(() => {
+                const WeatherIcon =
+                  WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] ||
+                  CloudIcon;
+                return <WeatherIcon className='h-5 w-5' />;
+              })()}
+              <span>{weather.description}</span>
+              <span>{Math.round(weather.temp)}°F</span>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -600,11 +578,10 @@ const Dashboard = () => {
                     })}
                   </h3>
 
-                  <div className='grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400'>
+                  <div className='grid grid-cols-3 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400'>
                     <div>Category</div>
                     <div>Date</div>
                     <div className='text-right'>Amount</div>
-                    <div className='text-right'>Currency</div>
                   </div>
 
                   <div className='space-y-2'>
@@ -618,7 +595,7 @@ const Dashboard = () => {
                       return (
                         <div
                           key={expense.id}
-                          className='group grid grid-cols-4 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]'
+                          className='group grid grid-cols-3 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]'
                         >
                           <div className='flex items-center gap-2'>
                             <div
@@ -640,12 +617,6 @@ const Dashboard = () => {
                           <div className='flex items-center justify-end'>
                             <span className='text-lg font-semibold tracking-tight'>
                               {formatCurrency(expense.amount)}
-                            </span>
-                          </div>
-
-                          <div className='flex items-center justify-end'>
-                            <span className='text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                              USD
                             </span>
                           </div>
                         </div>
@@ -963,6 +934,4 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
-
-export default Dashboard;
+}

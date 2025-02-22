@@ -1,4 +1,16 @@
-import { User, InsertUser, Budget, InsertBudget, Expense, InsertExpense, Notification, users, budgets, expenses, notifications } from "@shared/schema";
+import {
+  User,
+  InsertUser,
+  Budget,
+  InsertBudget,
+  Expense,
+  InsertExpense,
+  Notification,
+  users,
+  budgets,
+  expenses,
+  notifications,
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import session from "express-session";
@@ -42,7 +54,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user;
   }
 
@@ -55,14 +70,14 @@ export class DatabaseStorage implements IStorage {
     const [budget] = await db
       .select()
       .from(budgets)
-      .where(and(
-        eq(budgets.userId, userId),
-        eq(budgets.month, month)
-      ));
+      .where(and(eq(budgets.userId, userId), eq(budgets.month, month)));
     return budget;
   }
 
-  async createBudget(userId: number, insertBudget: InsertBudget): Promise<Budget> {
+  async createBudget(
+    userId: number,
+    insertBudget: InsertBudget
+  ): Promise<Budget> {
     const [budget] = await db
       .insert(budgets)
       .values({
@@ -87,13 +102,18 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(expenses)
-      .where(and(
-        eq(expenses.userId, userId),
-        // eq(expenses.date.toString().slice(0, 7), month)
-      ));
+      .where(
+        and(
+          eq(expenses.userId, userId)
+          // eq(expenses.date.toString().slice(0, 7), month)
+        )
+      );
   }
 
-  async createExpense(userId: number, insertExpense: InsertExpense): Promise<Expense> {
+  async createExpense(
+    userId: number,
+    insertExpense: InsertExpense
+  ): Promise<Expense> {
     // Get current month's budget for the specific user
     const currentMonth = new Date().toISOString().slice(0, 7);
     const budget = await this.getBudget(userId, currentMonth);
@@ -104,7 +124,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...insertExpense,
         userId,
-        date: new Date(),
+        date: new Date(insertExpense.date.toISOString()),
       })
       .returning();
 
@@ -118,7 +138,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.userId, userId));
   }
 
-  async createNotification(userId: number, message: string): Promise<Notification> {
+  async createNotification(
+    userId: number,
+    message: string
+  ): Promise<Notification> {
     const [notification] = await db
       .insert(notifications)
       .values({

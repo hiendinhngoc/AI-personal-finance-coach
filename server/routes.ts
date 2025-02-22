@@ -14,9 +14,26 @@ import {
 import { formatExpenses } from "./utils";
 import { initializeAgent, getMessage } from "./agent";
 
+// Lazy initialization of the agent
+let agentPromise: Promise<any> | null = null;
+
+const getAgent = async () => {
+  if (!agentPromise) {
+    agentPromise = initializeAgent().catch(err => {
+      console.error('Failed to initialize agent:', err);
+      // Reset promise so we can try again
+      agentPromise = null;
+      return null;
+    });
+  }
+  return agentPromise;
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
-  const agent = await initializeAgent();
+
+  // Start agent initialization in background
+  getAgent();
 
   app.get("/api/budget/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -229,6 +246,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "ThreadId parameter is required" });
       }
 
+      // Get the agent instance
+      const agent = await getAgent();
+      if (!agent) {
+        return res.status(503).json({ error: "AI service temporarily unavailable" });
+      }
+
       // Use formatExpenses utility to transform the expenses
       // Get current month integer
       const month = new Date().getMonth() + 1;
@@ -244,8 +267,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parseInt(threadId),
         userMessage
       );
-
-      console.log(response);
 
       if (!response) {
         return res

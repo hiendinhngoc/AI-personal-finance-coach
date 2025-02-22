@@ -12,6 +12,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { useAuth } from "./hooks/use-auth";
 import { Redirect } from "wouter";
+import { ChatBot } from "@/components/ChatBot";
 
 function RootRedirect() {
   const { user, isLoading } = useAuth();
@@ -38,6 +39,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Router />
+          <ChatBot />
           <Toaster />
         </AuthProvider>
       </QueryClientProvider>
