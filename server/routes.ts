@@ -147,6 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/weather", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+    const defaultWeather = {
+      main: "Clear",
+      description: "Sunny with no clouds",
+      temp: 72.5,
+      humidity: 60,
+      windSpeed: 5.2
+    }
     try {
       const formatInstructions = `
       {
@@ -180,10 +187,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           content: "What's the current weather in San Francisco?",
         },
       ]);
-      const content = response.content;
-      let weatherData = {}
+      const content = response.content as string;
+      let weatherData = defaultWeather
       try {
-        weatherData = JSON.parse(response.content as string);
+        weatherData = JSON.parse(content as string);
       } catch (e) {
         const fixedContent = await reformatJsonResponse(formatInstructions, content);
         weatherData = JSON.parse(fixedContent);
@@ -192,6 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching weather:", error);
       res.status(500).json({ error: "Failed to fetch weather data" });
+      return defaultWeather;
     }
   });
 
