@@ -116,6 +116,12 @@ export class DatabaseStorage implements IStorage {
       case 'month':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
+      case 'all':
+        // Return all expenses without date filtering
+        return db
+          .select()
+          .from(expenses)
+          .where(eq(expenses.userId, userId));
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }

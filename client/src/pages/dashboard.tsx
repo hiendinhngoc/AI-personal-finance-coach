@@ -77,6 +77,7 @@ const EXPENSE_CATEGORIES = [
 ];
 
 const TIME_FILTERS = {
+  ALL: "all",
   TODAY: "today",
   WEEK: "week",
   MONTH: "month",
