@@ -1,7 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, CloudIcon, SunIcon, CloudRainIcon, CloudSnowIcon, CloudLightningIcon } from "lucide-react";
+import {
+  Loader2,
+  CloudIcon,
+  SunIcon,
+  CloudRainIcon,
+  CloudSnowIcon,
+  CloudLightningIcon,
+} from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -157,7 +164,6 @@ const WEATHER_ICONS = {
   Thunderstorm: CloudLightningIcon,
 } as const;
 
-
 const Dashboard = () => {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
@@ -173,9 +179,9 @@ const Dashboard = () => {
   const { theme, setTheme } = useTheme();
 
   const { data: weather } = useQuery({
-    queryKey: ['weather'],
-    queryFn: () => fetch('/api/weather').then(res => res.json())
-  })
+    queryKey: ["weather"],
+    queryFn: () => fetch("/api/weather").then((res) => res.json()),
+  });
 
   console.log(amount, selectedCategory);
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,17 +240,9 @@ const Dashboard = () => {
     queryKey: [`/api/budget/${month}`],
   });
 
-
-
   const { data: expenses } = useQuery<Expense[]>({
     queryKey: [`/api/expenses/${timeFilter}`],
   });
-  console.log(expenses)
-  const { data: costCuttingMeasure } = useQuery<string>({
-    queryKey: [`/api/expenses/analysis/${timeFilter}`],
-  });
-
-  console.log(costCuttingMeasure)
 
   const { data: notifications } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -433,7 +431,10 @@ const Dashboard = () => {
               {weather && (
                 <>
                   {(() => {
-                    const WeatherIcon = WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] || CloudIcon;
+                    const WeatherIcon =
+                      WEATHER_ICONS[
+                        weather.main as keyof typeof WEATHER_ICONS
+                      ] || CloudIcon;
                     return <WeatherIcon className="h-5 w-5" />;
                   })()}
                   <span>{weather.description}</span>
@@ -534,7 +535,10 @@ const Dashboard = () => {
 
               <div className="space-y-2">
                 {expenses?.map((expense) => {
-                  const categoryConfig = CATEGORY_CONFIG[expense.category as keyof typeof CATEGORY_CONFIG];
+                  const categoryConfig =
+                    CATEGORY_CONFIG[
+                      expense.category as keyof typeof CATEGORY_CONFIG
+                    ];
                   const CategoryIcon = categoryConfig.icon;
 
                   return (
@@ -755,48 +759,54 @@ const Dashboard = () => {
                       )}
                     </Label>
                   </div>
-                  <div>
-                    <Label htmlFor="amount">Amount (USD)</Label>
-                    <Input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      name="category"
-                      required
-                      value={selectedCategory}
-                      onValueChange={setSelectedCategory}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPENSE_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="datetime-local"
-                      defaultValue={new Date().toISOString().slice(0, 16)}
-                    />
-                  </div>
+
+                  {amount && (
+                    <>
+                      <div>
+                        <Label htmlFor="amount">Amount (USD)</Label>
+                        <Input
+                          id="amount"
+                          name="amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          required
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="category">Category</Label>
+                        <Select
+                          name="category"
+                          required
+                          value={selectedCategory}
+                          onValueChange={setSelectedCategory}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EXPENSE_CATEGORIES.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="date">Date</Label>
+                        <Input
+                          id="date"
+                          name="date"
+                          type="datetime-local"
+                          defaultValue={new Date().toISOString().slice(0, 16)}
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <Button type="submit" className="w-full flex justify-center">
                     {" "}
                     {isSubmittingExpense ? (
