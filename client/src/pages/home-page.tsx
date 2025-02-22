@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useTheme } from "@/hooks/use-theme";
 import {
   ChartPieIcon,
   ArrowRightIcon,
@@ -15,66 +16,89 @@ export default function HomePage() {
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const TimeIcon = hour >= 18 || hour < 6 ? MoonIcon : SunIcon;
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-16">
-        <div className="flex justify-between items-center mb-16">
-          <Link href="/">
-            <img
-              src="/cp.jpg"
-              alt="Company Logo"
-              className="h-12 w-auto cursor-pointer"
-            />
-          </Link>
-          <div className="text-right flex items-center gap-2">
-            <TimeIcon className="h-5 w-5 text-primary" />
-            <p className="text-lg text-muted-foreground">{greeting} ⛅</p>
+    <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300'>
+      <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='h-16 flex items-center justify-between'>
+            <Link href="/">
+              <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+                Smart Budget
+              </h1>
+            </Link>
+            <div className='flex items-center space-x-4'>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
+              >
+                {theme === "dark" ? (
+                  <SunIcon className='h-5 w-5' />
+                ) : (
+                  <MoonIcon className='h-5 w-5' />
+                )}
+              </button>
+              <div className='text-right flex items-center gap-2'>
+                <TimeIcon className='h-5 w-5 text-primary' />
+                <p className='text-lg text-muted-foreground'>{greeting} ⛅</p>
+              </div>
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold mb-6">Welcome to Smart Budget</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+      <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
+        <div className='text-center mb-16 space-y-6'>
+          <h1 className='text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+            Welcome to Smart Budget
+          </h1>
+          <p className='text-xl text-muted-foreground max-w-2xl mx-auto'>
             Take control of your finances with our powerful budgeting tools and
             expense tracking features.
           </p>
           <Link href="/auth">
-            <Button size="lg" className="mt-8">
-              Login
-              <ArrowRightIcon className="ml-2 h-4 w-4" />
+            <Button size="lg" className='mt-8 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'>
+              Get Started
+              <ArrowRightIcon className='ml-2 h-4 w-4' />
             </Button>
           </Link>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <Card className="p-6 space-y-4">
-            <ChartPieIcon className="h-12 w-12 text-primary" />
-            <h2 className="text-2xl font-semibold">Track Expenses</h2>
-            <p className="text-muted-foreground">
+        <div className='grid md:grid-cols-3 gap-8 max-w-5xl mx-auto'>
+          <Card className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px] space-y-4'>
+            <ChartPieIcon className='h-12 w-12 text-primary' />
+            <h2 className='text-2xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+              Track Expenses
+            </h2>
+            <p className='text-muted-foreground'>
               Monitor your spending patterns with detailed charts and analytics.
             </p>
           </Card>
 
-          <Card className="p-6 space-y-4">
-            <ReceiptIcon className="h-12 w-12 text-primary" />
-            <h2 className="text-2xl font-semibold">Upload Receipts</h2>
-            <p className="text-muted-foreground">
+          <Card className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px] space-y-4'>
+            <ReceiptIcon className='h-12 w-12 text-primary' />
+            <h2 className='text-2xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+              Upload Receipts
+            </h2>
+            <p className='text-muted-foreground'>
               Use AI to analyze your receipt image and save the expense
               automatically.
             </p>
           </Card>
 
-          <Card className="p-6 space-y-4">
-            <BellIcon className="h-12 w-12 text-primary" />
-            <h2 className="text-2xl font-semibold">Smart Alerts</h2>
-            <p className="text-muted-foreground">
-              AI analyzes your current month's expenses compared to the previous
-              month and provides recommendations.
+          <Card className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px] space-y-4'>
+            <BellIcon className='h-12 w-12 text-primary' />
+            <h2 className='text-2xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
+              Smart Alerts
+            </h2>
+            <p className='text-muted-foreground'>
+              AI analyzes your expenses and provides personalized recommendations
+              to help you save more.
             </p>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
