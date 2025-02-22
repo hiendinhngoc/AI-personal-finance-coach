@@ -22,12 +22,14 @@ export const visionLLM = new ChatOpenAI({
   temperature: 0,
   topP: 0.7,
   maxTokens: 4000,
-  modelName: "meta-llama/llama-3.2-90b-vision-instruct",
+  modelName: "openai/gpt-4o",
   configuration: {
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
   },
 });
+
+
 
 export async function generateTextResponse(prompt: string): Promise<string> {
   try {
@@ -35,6 +37,44 @@ export async function generateTextResponse(prompt: string): Promise<string> {
       {
         role: "user",
         content: prompt,
+      },
+    ]);
+    return response.content as string;
+  } catch (error) {
+    console.error("Error generating text response:", error);
+    throw new Error("Failed to generate text response");
+  }
+}
+
+export interface ExpenseDetail {
+  category?: string;
+  amount?: number;
+}
+
+export interface ExpenseBudgetInformation {
+  budget?: number;
+  month?: number;
+  totalExpenses?: number;
+  expenseDetails?: Array<ExpenseDetail | null>;
+}
+
+
+export async function generateCostCuttingMeasureAdviseResponse(budgetExpenseDetails: ExpenseBudgetInformation): Promise<string> {
+  try {
+    const response = await textLLM.invoke([
+      {
+        role: "system",
+        content: `
+        You are a financial consultant. Your task is to provided clients with some effective cost cutting measures for their monthly expense. You will be given detailed information about EXPENSE BUDGET INFORMATION.
+        OUTPUT REQUIREMENTS: Give assessment about their current financial situations and detailed advices about cost cutting measures only, in markdown format. Using proper headings, sections, table, bullets to clarify your answer.
+        `,
+      },
+      {
+        role: "user",
+        content: `
+        EXPENSE BUDGET INFORMATION:
+        ${JSON.stringify(budgetExpenseDetails)}
+        `,
       },
     ]);
     return response.content as string;
@@ -110,11 +150,11 @@ Rules:
       {
         role: "system",
         content: `You are a receipt analyzer. Your task is to extract structured expense data from plain text as specified in JSON SCHEMA.
-      
+
       ---
       JSON SCHEMA
       ${formatInstructions}
-      
+
       ### Instructions:
        - Extract only relevant data.
        - Ensure all values strictly match the schema's data types and format.
@@ -139,11 +179,11 @@ Rules:
         {
           role: "system",
           content: `You are an expert in extracting structured data from raw text.Your task is to convert the given RAW DATA into a JSON object that follows the specified schema.
-      
+
        ---
        ### JSON SCHEMA:
        ${formatInstructions}
-      
+
        ### Instructions:
        - Extract only relevant data.
        - Ensure all values strictly match the schema's data types and format.
