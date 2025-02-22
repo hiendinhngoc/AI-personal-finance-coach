@@ -36,12 +36,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/expenses/analysis/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const formattedExpenses = await formatExpenses(
+    const formattedExpensesThisMonth = await formatExpenses(
       req.user.id,
-      req.params.month,
+      req.params.month
     );
-    const costCuttingMeasures =
-      await generateCostCuttingMeasureAdviseResponse(formattedExpenses);
+    const formattedExpensesLastMonth = await formatExpenses(
+      req.user.id,
+      Number(req.params.month) === 1
+        ? "12"
+        : String(Number(req.params.month) - 1)
+    );
+    const costCuttingMeasures = await generateCostCuttingMeasureAdviseResponse(
+      formattedExpensesThisMonth,
+      formattedExpensesLastMonth
+    );
     res.json(costCuttingMeasures);
   });
 
@@ -62,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update remaining budget
     const budget = await storage.getBudget(
       req.user.id,
-      new Date().toISOString().slice(0, 7),
+      new Date().toISOString().slice(0, 7)
     );
     if (budget) {
       const newRemainingAmount = budget.remainingAmount - expense.amount;
@@ -70,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (newRemainingAmount < budget.totalAmount * 0.2) {
         await storage.createNotification(
           req.user.id,
-          "Warning: You have less than 20% of your budget remaining",
+          "Warning: You have less than 20% of your budget remaining"
         );
       }
     }
@@ -103,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (image) {
         response = await generateVisionResponse(image, prompt);
       } else {
-        const expenseBudgetInformation: ExpenseBudgetInformation = {
+        const expenseBudgetInformationThisMonth: ExpenseBudgetInformation = {
           budget: 10000000,
           month: 1,
           totalExpenses: 13000000,
@@ -113,8 +121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             { category: "utitly", amount: 3000000 },
           ],
         };
+        const expenseBudgetInformationLastMonth: ExpenseBudgetInformation = {
+          budget: 10000000,
+          month: 12,
+          totalExpenses: 12000000,
+          expenseDetails: [
+            { category: "food", amount: 2000000 },
+            { category: "education", amount: 6000000 },
+            { category: "utitly", amount: 3000000 },
+          ],
+        };
         response = await generateCostCuttingMeasureAdviseResponse(
-          expenseBudgetInformation,
+          expenseBudgetInformationThisMonth,
+          expenseBudgetInformationLastMonth
         );
       }
 
@@ -173,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (e) {
         const fixedContent = await reformatJsonResponse(
           formatInstructions,
-          content,
+          content
         );
         weatherData = JSON.parse(fixedContent);
       }
@@ -199,13 +218,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!threadId) {
-        return res.status(400).json({ error: "ThreadId parameter is required" });
+        return res
+          .status(400)
+          .json({ error: "ThreadId parameter is required" });
       }
 
       // Use formatExpenses utility to transform the expenses
       // Get current month integer
       const month = new Date().getMonth() + 1;
-      const currentFinancialData = await formatExpenses(req.user.id, month.toString());
+      const currentFinancialData = await formatExpenses(
+        req.user.id,
+        month.toString()
+      );
 
       // Get response from agent
       const response = await getMessage(
@@ -215,25 +239,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userMessage
       );
 
-      console.log(response)
+      console.log(response);
 
       if (!response) {
-        return res.status(500).json({ error: "Failed to get response from agent" });
+        return res
+          .status(500)
+          .json({ error: "Failed to get response from agent" });
       }
 
       res.json({
-        message: response
+        message: response,
       });
-
     } catch (error) {
-      console.error('Chat API Error:', error);
+      console.error("Chat API Error:", error);
       res.status(500).json({
-        error: "An error occurred while processing your request."
+        error: "An error occurred while processing your request.",
       });
     }
   });
-
-
 
   const httpServer = createServer(app);
   return httpServer;

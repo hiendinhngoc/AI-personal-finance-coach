@@ -78,6 +78,6 @@ app.use((req, res, next) => {
     },
     () => {
       log(`Server is now running on port ${port}`);
-    },
+    }
   );
 })();

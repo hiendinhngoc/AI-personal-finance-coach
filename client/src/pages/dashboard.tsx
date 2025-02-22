@@ -121,11 +121,11 @@ const CATEGORY_CONFIG = {
 } as const;
 
 const CHART_COLORS = Object.values(CATEGORY_CONFIG).map(
-  (config) => config.color,
+  (config) => config.color
 );
 
 const CATEGORY_ICONS = Object.fromEntries(
-  Object.entries(CATEGORY_CONFIG).map(([key, value]) => [key, value.icon]),
+  Object.entries(CATEGORY_CONFIG).map(([key, value]) => [key, value.icon])
 ) as Record<string, LucideIcon>;
 
 type TimeFilter = (typeof TIME_FILTERS)[keyof typeof TIME_FILTERS];
@@ -306,7 +306,6 @@ const Dashboard = () => {
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
         receiptUrl: "",
-        date: data.date, // Add the date field here
       };
 
       if (data.invoice) {
@@ -372,47 +371,42 @@ const Dashboard = () => {
   // Calculate total monthly expenses
   const totalMonthlyExpenses = currentMonthExpenses.reduce(
     (sum, expense) => sum + expense.amount,
-    0,
+    0
   );
 
   // Calculate remaining budget
   const totalBudget = budget?.totalAmount || 0;
   const remainingBudget = totalBudget - totalMonthlyExpenses;
 
-  const chartData = useMemo(() => 
-    expenses?.reduce(
-      (acc, expense) => {
-        const existingCategory = acc.find(
-          (item) => item.category === expense.category,
-        );
-        if (existingCategory) {
-          existingCategory.value += expense.amount;
-        } else {
-          acc.push({
-            category: expense.category,
-            value: expense.amount,
-          });
-        }
-        return acc;
-      },
-      [] as { category: string; value: number }[],
-    ) || [], [expenses]);
+  const chartData =
+    expenses?.reduce((acc, expense) => {
+      const existingCategory = acc.find(
+        (item) => item.category === expense.category
+      );
+      if (existingCategory) {
+        existingCategory.value += expense.amount;
+      } else {
+        acc.push({
+          category: expense.category,
+          value: expense.amount,
+        });
+      }
+      return acc;
+    }, [] as { category: string; value: number }[]) || [];
 
-  const groupedExpenses = useMemo(() => expenses?.reduce(
-      (groups, expense) => {
-        const date = new Date(expense.date);
-        const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-        if (!groups[key]) {
-          groups[key] = [];
-        }
-        groups[key].push(expense);
-        return groups;
-      },
-      {} as Record<string, Expense[]>,
-    ) || [],[expenses]);
+  const groupedExpenses =
+    expenses?.reduce((groups, expense) => {
+      const date = new Date(expense.date);
+      const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(expense);
+      return groups;
+    }, {} as Record<string, Expense[]>) || {};
 
   const sortedGroups = Object.entries(groupedExpenses).sort((a, b) =>
-    b[0].localeCompare(a[0]),
+    b[0].localeCompare(a[0])
   );
   const handleSubmitMessage = async () => {
     const response = createChatMutation.mutate({ message: "What is my current financial situation?", threadId: 1 });
@@ -432,66 +426,66 @@ const Dashboard = () => {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 flex items-center justify-between">
-            <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+    <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300'>
+      <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='h-16 flex items-center justify-between'>
+            <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
               Dashboard
             </h1>
 
-            <div className="flex items-center space-x-4">
+            <div className='flex items-center space-x-4'>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className='p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
               >
                 {theme === "dark" ? (
-                  <Sun className="h-5 w-5" />
+                  <Sun className='h-5 w-5' />
                 ) : (
-                  <Moon className="h-5 w-5" />
+                  <Moon className='h-5 w-5' />
                 )}
               </button>
 
               <Button
-                variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                variant='ghost'
+                className='flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'
                 onClick={() => setShowBudgetModal(true)}
               >
-                <PlusIcon className="h-4 w-4" />
+                <PlusIcon className='h-4 w-4' />
                 Set Budget
               </Button>
 
               <Button
-                variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                variant='ghost'
+                className='flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'
                 onClick={() => setShowExpenseModal(true)}
               >
-                <PlusIcon className="h-4 w-4" />
+                <PlusIcon className='h-4 w-4' />
                 Add Expense
               </Button>
 
-              <div className="relative">
+              <div className='relative'>
                 <Button
-                  variant="ghost"
-                  className="relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent group"
+                  variant='ghost'
+                  className='relative flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-primary/20 hover:text-primary hover:border-primary/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent group'
                   onClick={() => {
                     /* handle notifications */
                   }}
                 >
-                  <BellIcon className="h-4 w-4 group-hover:animate-bounce" />
+                  <BellIcon className='h-4 w-4 group-hover:animate-bounce' />
                   {notifications &&
                     notifications.filter((n) => !n.read).length > 0 && (
-                      <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300" />
+                      <span className='absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse group-hover:bg-primary group-hover:scale-125 transition-all duration-300' />
                     )}
                 </Button>
               </div>
 
               <Button
-                variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent"
+                variant='ghost'
+                className='flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-white/10 hover:bg-red-500/20 hover:text-red-500 hover:border-red-500/50 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 rounded-full transition-all duration-300 border border-transparent'
                 onClick={() => logoutMutation.mutate()}
               >
-                <LogOutIcon className="h-4 w-4" />
+                <LogOutIcon className='h-4 w-4' />
                 Logout
               </Button>
             </div>
@@ -499,13 +493,13 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-2xl font-semibold">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center space-x-4'>
+            <h2 className='text-2xl font-semibold'>
               {getGreeting()}, {user?.username}
             </h2>
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className='flex items-center space-x-2 text-muted-foreground'>
               {weather && (
                 <>
                   {(() => {
@@ -513,7 +507,7 @@ const Dashboard = () => {
                       WEATHER_ICONS[
                         weather.main as keyof typeof WEATHER_ICONS
                       ] || CloudIcon;
-                    return <WeatherIcon className="h-5 w-5" />;
+                    return <WeatherIcon className='h-5 w-5' />;
                   })()}
                   <span>{weather.description}</span>
                   <span>{Math.round(weather.temp)}°F</span>
@@ -524,28 +518,28 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+      <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
+          <div className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]'>
+            <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
               Monthly Budget
             </h3>
-            <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <p className='mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
               {formatCurrency(budget?.totalAmount || 0)}
             </p>
           </div>
 
-          <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+          <div className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]'>
+            <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
               Total Expenses (This Month)
             </h3>
-            <p className="mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <p className='mt-2 text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
               {formatCurrency(totalMonthlyExpenses)}
             </p>
           </div>
 
-          <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+          <div className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] hover:translate-y-[-2px]'>
+            <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
               Remaining Budget
             </h3>
             <p
@@ -560,19 +554,19 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden">
-          <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Expenses & Invoices</h2>
+        <div className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden'>
+          <div className='p-6 border-b border-gray-200/50 dark:border-gray-700/50'>
+            <div className='flex items-center justify-between'>
+              <h2 className='text-xl font-semibold'>Expenses & Invoices</h2>
               {activeTab !== "suggestions" && (
-                <div className="flex gap-2">
+                <div className='flex gap-2'>
                   {Object.entries(TIME_FILTERS).map(([key, value]) => (
                     <Button
                       key={value}
                       variant={timeFilter === value ? "default" : "ghost"}
-                      size="sm"
+                      size='sm'
                       onClick={() => setTimeFilter(value as TimeFilter)}
-                      className="rounded-full"
+                      className='rounded-full'
                     >
                       {key.charAt(0) + key.slice(1).toLowerCase()}
                     </Button>
@@ -583,34 +577,34 @@ const Dashboard = () => {
           </div>
 
           <Tabs
-            defaultValue="list"
-            className="p-6"
+            defaultValue='list'
+            className='p-6'
             onValueChange={setActiveTab}
           >
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="list">Invoice List</TabsTrigger>
-              <TabsTrigger value="chart">Expense Chart</TabsTrigger>
-              <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
+            <TabsList className='grid w-full grid-cols-3 mb-6'>
+              <TabsTrigger value='list'>Invoice List</TabsTrigger>
+              <TabsTrigger value='chart'>Expense Chart</TabsTrigger>
+              <TabsTrigger value='suggestions'>Suggestions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="list" className="space-y-4">
+            <TabsContent value='list' className='space-y-4'>
               {sortedGroups.map(([monthYear, monthExpenses]) => (
-                <div key={monthYear} className="space-y-4">
-                  <h3 className="text-lg font-semibold px-6">
+                <div key={monthYear} className='space-y-4'>
+                  <h3 className='text-lg font-semibold px-6'>
                     {new Date(monthYear).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                     })}
                   </h3>
 
-                  <div className="grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">
+                  <div className='grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400'>
                     <div>Category</div>
                     <div>Date</div>
-                    <div className="text-right">Amount</div>
-                    <div className="text-right">Currency</div>
+                    <div className='text-right'>Amount</div>
+                    <div className='text-right'>Currency</div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className='space-y-2'>
                     {monthExpenses.map((expense) => {
                       const categoryConfig =
                         CATEGORY_CONFIG[
@@ -621,33 +615,33 @@ const Dashboard = () => {
                       return (
                         <div
                           key={expense.id}
-                          className="group grid grid-cols-4 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                          className='group grid grid-cols-4 gap-4 p-4 rounded-xl backdrop-blur-sm bg-white/40 dark:bg-gray-800/40 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]'
                         >
-                          <div className="flex items-center gap-2">
+                          <div className='flex items-center gap-2'>
                             <div
                               className={`flex items-center gap-2 px-3 py-1 rounded-full ${categoryConfig.gradient} ${categoryConfig.textColor} transition-all duration-300 ${categoryConfig.hoverGradient}`}
                             >
-                              <CategoryIcon className="h-4 w-4" />
-                              <span className="font-medium">
+                              <CategoryIcon className='h-4 w-4' />
+                              <span className='font-medium'>
                                 {expense.category}
                               </span>
                             </div>
                           </div>
 
-                          <div className="flex items-center">
-                            <time className="text-sm text-gray-600 dark:text-gray-300">
+                          <div className='flex items-center'>
+                            <time className='text-sm text-gray-600 dark:text-gray-300'>
                               {formatDate(expense.date.toString())}
                             </time>
                           </div>
 
-                          <div className="flex items-center justify-end">
-                            <span className="text-lg font-semibold tracking-tight">
+                          <div className='flex items-center justify-end'>
+                            <span className='text-lg font-semibold tracking-tight'>
                               {formatCurrency(expense.amount)}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-end">
-                            <span className="text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className='flex items-center justify-end'>
+                            <span className='text-sm text-gray-600 dark:text-gray-300 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
                               USD
                             </span>
                           </div>
@@ -659,49 +653,49 @@ const Dashboard = () => {
               ))}
             </TabsContent>
 
-            <TabsContent value="chart">
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
+            <TabsContent value='chart'>
+              <div className='h-[400px]'>
+                <ResponsiveContainer width='100%' height='100%'>
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
+                    <CartesianGrid strokeDasharray='3 3' />
+                    <XAxis dataKey='category' />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="value" fill="var(--primary)" />
+                    <Bar dataKey='value' fill='var(--primary)' />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </TabsContent>
 
-            <TabsContent value="suggestions">
-              <div className="prose dark:prose-invert max-w-none">
+            <TabsContent value='suggestions'>
+              <div className='prose dark:prose-invert max-w-none'>
                 {suggestions ? (
                   <>
                     <Markdown remarkPlugins={[remarkGfm]}>{suggestions}</Markdown>
 
-                    <div className="mt-8 grid grid-cols-2 gap-6">
-                      <div className="border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
+                    <div className='mt-8 grid grid-cols-2 gap-6'>
+                      <div className='border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4'>
+                        <h3 className='text-lg font-semibold text-green-700 dark:text-green-400'>
                           Top Saving Category
                         </h3>
-                        <p className="text-green-600 dark:text-green-300">
+                        <p className='text-green-600 dark:text-green-300'>
                           Housing expenses are lower than usual this month
                         </p>
                       </div>
 
-                      <div className="border border-red-200 bg-red-50/50 dark:bg-red-900/20 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">
+                      <div className='border border-red-200 bg-red-50/50 dark:bg-red-900/20 rounded-lg p-4'>
+                        <h3 className='text-lg font-semibold text-red-700 dark:text-red-400'>
                           Watch Out
                         </h3>
-                        <p className="text-red-600 dark:text-red-300">
+                        <p className='text-red-600 dark:text-red-300'>
                           Entertainment spending is 30% higher than last month
                         </p>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin" />
+                  <div className='flex items-center justify-center h-40'>
+                    <Loader2 className='h-8 w-8 animate-spin' />
                   </div>
                 )}
               </div>
@@ -714,7 +708,7 @@ const Dashboard = () => {
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
           <DialogTrigger asChild>
             <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
+              <PlusIcon className='h-4 w-4 mr-2' />
               Set Monthly Budget
             </Button>
           </DialogTrigger>
@@ -731,20 +725,20 @@ const Dashboard = () => {
                   createBudgetMutation.mutate(amount);
                 }
               }}
-              className="space-y-4"
+              className='space-y-4'
             >
               <div>
-                <Label htmlFor="amount">Amount (USD)</Label>
+                <Label htmlFor='amount'>Amount (USD)</Label>
                 <Input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  id='amount'
+                  name='amount'
+                  type='number'
+                  min='0'
+                  step='0.01'
                   required
                 />
               </div>
-              <Button type="submit">Save</Button>
+              <Button type='submit'>Save</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -753,38 +747,38 @@ const Dashboard = () => {
       {showExpenseModal && (
         <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
           <DialogTrigger asChild>
-            <Button className="w-full">
-              <PlusIcon className="h-4 w-4 mr-2" />
+            <Button className='w-full'>
+              <PlusIcon className='h-4 w-4 mr-2' />
               Add Expense
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className='sm:max-w-[425px]'>
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
             </DialogHeader>
-            <Tabs defaultValue="form" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="form">Manual Entry</TabsTrigger>
-                <TabsTrigger value="upload">Upload Invoice</TabsTrigger>
+            <Tabs defaultValue='form' className='w-full'>
+              <TabsList className='grid w-full grid-cols-2'>
+                <TabsTrigger value='form'>Manual Entry</TabsTrigger>
+                <TabsTrigger value='upload'>Upload Invoice</TabsTrigger>
               </TabsList>
-              <TabsContent value="form">
-                <form onSubmit={handleExpenseSubmit} className="space-y-4">
+              <TabsContent value='form'>
+                <form onSubmit={handleExpenseSubmit} className='space-y-4'>
                   <div>
-                    <Label htmlFor="amount">Amount (USD)</Label>
+                    <Label htmlFor='amount'>Amount (USD)</Label>
                     <Input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      id='amount'
+                      name='amount'
+                      type='number'
+                      min='0'
+                      step='0.01'
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Select name="category" required>
+                    <Label htmlFor='category'>Category</Label>
+                    <Select name='category' required>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue placeholder='Select category' />
                       </SelectTrigger>
                       <SelectContent>
                         {EXPENSE_CATEGORIES.map((category) => (
@@ -796,17 +790,17 @@ const Dashboard = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="date">Date</Label>
+                    <Label htmlFor='date'>Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant='outline'
                           className={cn(
                             "w-full justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground",
+                            !selectedDate && "text-muted-foreground"
                           )}
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          <CalendarIcon className='mr-2 h-4 w-4' />
                           {selectedDate ? (
                             format(selectedDate, "PPP")
                           ) : (
@@ -814,9 +808,9 @@ const Dashboard = () => {
                           )}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className='w-auto p-0' align='start'>
                         <Calendar
-                          mode="single"
+                          mode='single'
                           selected={selectedDate}
                           onSelect={(date) => date && setSelectedDate(date)}
                           initialFocus
@@ -824,52 +818,52 @@ const Dashboard = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <Button type="submit" className="w-full flex justify-center">
+                  <Button type='submit' className='w-full flex justify-center'>
                     {isSubmittingExpense ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <Loader2 className='h-8 w-8 animate-spin' />
                     ) : (
                       "Add Expense"
                     )}
                   </Button>
                 </form>
               </TabsContent>
-              <TabsContent value="upload">
-                <form onSubmit={handleExpenseSubmit} className="space-y-4">
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <TabsContent value='upload'>
+                <form onSubmit={handleExpenseSubmit} className='space-y-4'>
+                  <div className='border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors'>
                     <input
-                      name="invoice"
-                      id="invoice"
-                      className="hidden"
-                      type="file"
-                      accept="image/*"
+                      name='invoice'
+                      id='invoice'
+                      className='hidden'
+                      type='file'
+                      accept='image/*'
                       onChange={handleImageChange}
                     />
                     <Label
-                      htmlFor="invoice"
-                      className="flex flex-col justify-center items-center gap-2 cursor-pointer"
+                      htmlFor='invoice'
+                      className='flex flex-col justify-center items-center gap-2 cursor-pointer'
                     >
                       {!isUploadingImage && !image && (
                         <>
-                          <UploadIcon className="h-8 w8" />
+                          <UploadIcon className='h-8 w8' />
                           <span>Click or drag to upload invoice</span>
-                                                    <span className="text-sm text-muted-foreground">
+                          <span className='text-sm text-muted-foreground'>
                             Supports: JPG and PNG
                           </span>
                         </>
                       )}
                       {isUploadingImage && (
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <Loader2 className='h-8 w-8 animate-spin' />
                       )}
 
                       {!isUploadingImage && image && (
-                        <div className="w-full flex-col max-h-20 flex justify-center items-center">
+                        <div className='w-full flex-col max-h-20 flex justify-center items-center'>
                           <img
                             src={`data:image/jpeg;base64,${image}`}
-                            alt="Uploaded preview"
-                            className="max-w-xs rounded-lg shadow-md w-fit max-h-16"
+                            alt='Uploaded preview'
+                            className='max-w-xs rounded-lg shadow-md w-fit max-h-16'
                           />
                           <button
-                            className="mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs"
+                            className='mx-auto px-2 py-1 mt-1 border border-black/10 rounded-md text-xs'
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -886,27 +880,27 @@ const Dashboard = () => {
                   {amount && (
                     <>
                       <div>
-                        <Label htmlFor="amount">Amount (USD)</Label>
+                        <Label htmlFor='amount'>Amount (USD)</Label>
                         <Input
-                          id="amount"
-                          name="amount"
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          id='amount'
+                          name='amount'
+                          type='number'
+                          min='0'
+                          step='0.01'
                           required
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="category">Category</Label>
+                        <Label htmlFor='category'>Category</Label>
                         <Select
-                          name="category"
+                          name='category'
                           value={selectedCategory}
                           onValueChange={setSelectedCategory}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
+                            <SelectValue placeholder='Select category' />
                           </SelectTrigger>
                           <SelectContent>
                             {EXPENSE_CATEGORIES.map((category) => (
@@ -918,17 +912,17 @@ const Dashboard = () => {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="date">Date</Label>
+                        <Label htmlFor='date'>Date</Label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
-                              variant="outline"
+                              variant='outline'
                               className={cn(
                                 "w-full justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground",
+                                !selectedDate && "text-muted-foreground"
                               )}
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              <CalendarIcon className='mr-2 h-4 w-4' />
                               {selectedDate ? (
                                 format(selectedDate, "PPP")
                               ) : (
@@ -936,9 +930,9 @@ const Dashboard = () => {
                               )}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className='w-auto p-0' align='start'>
                             <Calendar
-                              mode="single"
+                              mode='single'
                               selected={selectedDate}
                               onSelect={(date) => date && setSelectedDate(date)}
                               initialFocus
@@ -947,11 +941,11 @@ const Dashboard = () => {
                         </Popover>
                       </div>
                       <Button
-                        type="submit"
-                        className="w-full flex justify-center"
+                        type='submit'
+                        className='w-full flex justify-center'
                       >
                         {isSubmittingExpense ? (
-                          <Loader2 className="h-8 w-8 animate-spin" />
+                          <Loader2 className='h-8 w-8 animate-spin' />
                         ) : (
                           "Add Expense"
                         )}
