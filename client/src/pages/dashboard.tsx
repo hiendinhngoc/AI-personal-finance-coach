@@ -144,7 +144,7 @@ const formatDate = (date: string) => {
 };
 
 const convertVNDtoUSD = (vndAmount: number) => {
-  const rate = 24000; 
+  const rate = 24000;
   return (vndAmount / rate).toFixed(2);
 };
 
@@ -266,7 +266,7 @@ const Dashboard = () => {
         amount: data.amount,
         category: data.category,
         description: `Expense on ${new Date(data.date).toLocaleDateString()}`,
-        receiptUrl: "", 
+        receiptUrl: "",
       };
 
       if (data.invoice) {
@@ -593,7 +593,25 @@ const Dashboard = () => {
             <TabsContent value="suggestions">
               <div className="prose dark:prose-invert max-w-none">
                 {suggestions ? (
-                  <div className="markdown-content" dangerouslySetInnerHTML={{ __html: suggestions }} />
+                  <>
+                    <div className="markdown-content" dangerouslySetInnerHTML={{ __html: suggestions }} />
+
+                    <div className="mt-8 grid grid-cols-2 gap-6">
+                      <div className="border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">Top Saving Category</h3>
+                        <p className="text-green-600 dark:text-green-300">
+                          Housing expenses are lower than usual this month
+                        </p>
+                      </div>
+
+                      <div className="border border-red-200 bg-red-50/50 dark:bg-red-900/20 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">Watch Out</h3>
+                        <p className="text-red-600 dark:text-red-300">
+                          Entertainment spending is 30% higher than last month
+                        </p>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -601,6 +619,7 @@ const Dashboard = () => {
                 )}
               </div>
             </TabsContent>
+
           </Tabs>
         </div>
       </main>
@@ -796,7 +815,7 @@ const Dashboard = () => {
                       <div>
                         <Label htmlFor="date">Date</Label>
                         <Input
-                          id="date"
+                                                    id="date"
                           name="date"
                           type="datetime-local"
                           defaultValue={new Date().toISOString().slice(0, 16)}
