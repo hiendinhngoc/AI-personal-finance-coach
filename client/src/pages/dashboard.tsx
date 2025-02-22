@@ -64,10 +64,11 @@ export default function Dashboard() {
   });
 
   const createExpenseMutation = useMutation({
-    mutationFn: async (data: { amount: number; category: string; invoice?: File }) => {
+    mutationFn: async (data: { amount: number; category: string; date: string; invoice?: File }) => {
       const formData = new FormData();
       formData.append('amount', data.amount.toString());
       formData.append('category', data.category);
+      formData.append('date', data.date);
       if (data.invoice) {
         formData.append('invoice', data.invoice);
       }
@@ -91,10 +92,11 @@ export default function Dashboard() {
     const form = e.target as HTMLFormElement;
     const amount = parseFloat(form.amount.value);
     const category = form.category.value;
+    const date = form.date.value || new Date().toISOString();
     const invoice = form.invoice?.files?.[0];
 
     if (amount > 0 && category) {
-      createExpenseMutation.mutate({ amount, category, invoice });
+      createExpenseMutation.mutate({ amount, category, date, invoice });
       form.reset();
     }
   };
@@ -253,11 +255,55 @@ export default function Dashboard() {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div>
+                          <Label htmlFor="date">Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="datetime-local"
+                            defaultValue={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
                         <Button type="submit" className="w-full">Add Expense</Button>
                       </form>
                     </TabsContent>
                     <TabsContent value="upload">
                       <form onSubmit={handleExpenseSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="category">Category</Label>
+                          <Select name="category" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {EXPENSE_CATEGORIES.map(category => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="date">Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="datetime-local"
+                            defaultValue={new Date().toISOString().slice(0, 16)}
+                          />
+                        </div>
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                           <input
                             type="file"
