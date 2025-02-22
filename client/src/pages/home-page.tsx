@@ -26,9 +26,9 @@ export default function HomePage() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Take control of your finances with our powerful budgeting tools and expense tracking features.
           </p>
-          <Link href="/dashboard">
+          <Link href="/auth">
             <Button size="lg" className="mt-8">
-              Go to Dashboard
+              Login
               <ArrowRightIcon className="ml-2 h-4 w-4" />
             </Button>
           </Link>

@@ -10,12 +10,21 @@ import Dashboard from "@/pages/dashboard";
 import TestAI from "@/pages/test-ai";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { useAuth } from "./hooks/use-auth";
+import { Redirect } from "wouter";
+
+function RootRedirect() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return null;
+  return user ? <Redirect to="/dashboard" /> : <HomePage />;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={HomePage} />
+      <Route path="/" component={RootRedirect} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       <ProtectedRoute path="/test-ai" component={TestAI} />
       <Route component={NotFound} />
