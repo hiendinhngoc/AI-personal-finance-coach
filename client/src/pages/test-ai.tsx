@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, ImageIcon } from "lucide-react";
+import { Loader2, HomeIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
 import type { ExpenseItem } from "@shared/schema";
 
 export default function TestAI() {
@@ -51,20 +52,29 @@ export default function TestAI() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container max-w-4xl mx-auto px-4">
-        <div className="flex items-center justify-center mb-8">
-          <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto" />
+    <div className="min-h-screen bg-background">
+      {/* Navigation Bar */}
+      <div className="border-b bg-white">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="ghost" size="icon">
+                <HomeIcon className="h-5 w-5" />
+              </Button>
+            </Link>
+            <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto" />
+          </div>
+          <h1 className="text-xl font-semibold">Test AI Model</h1>
         </div>
+      </div>
 
-        <Card className="shadow-sm">
-          <CardHeader className="border-b bg-white rounded-t-lg">
-            <CardTitle className="text-2xl font-semibold text-gray-900">Test AI Model</CardTitle>
-          </CardHeader>
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-4xl mx-auto">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <Label htmlFor="prompt" className="text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="prompt" className="text-sm font-medium text-gray-700">
                   Prompt (Optional for image analysis)
                 </Label>
                 <Textarea
@@ -72,21 +82,24 @@ export default function TestAI() {
                   placeholder="Enter your prompt here..."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  className="min-h-[100px] rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="min-h-[100px] mt-1 rounded-md border-gray-200 focus:border-primary focus:ring-primary"
                 />
               </div>
 
               <div>
-                <Label htmlFor="image" className="text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="image" className="text-sm font-medium text-gray-700">
                   Image (Optional)
                 </Label>
-                <div className="mt-1 flex items-center">
+                <div className="mt-1">
                   <Input
                     id="image"
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    className="rounded-md border-gray-200 focus:border-blue-500 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="rounded-md border-gray-200 focus:border-primary focus:ring-primary
+                             file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0
+                             file:text-sm file:font-semibold file:bg-primary/10 file:text-primary
+                             hover:file:bg-primary/20"
                   />
                 </div>
                 {image && (
@@ -103,7 +116,7 @@ export default function TestAI() {
               <Button 
                 type="submit" 
                 disabled={isLoading || (!prompt && !image)}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                className="w-full sm:w-auto"
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {image ? "Analyze Image" : "Generate Response"}
@@ -112,14 +125,14 @@ export default function TestAI() {
 
             {response && (
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Response:</h3>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h3 className="text-lg font-semibold mb-4">Response:</h3>
+                <div className="bg-gray-50 rounded-lg border p-4">
                   {typeof response === "string" ? (
                     <pre className="whitespace-pre-wrap text-sm text-gray-700">{response}</pre>
                   ) : (
                     <div className="divide-y divide-gray-200">
                       {response.map((item, index) => (
-                        <div key={index} className="py-4 first:pt-0 last:pb-0 hover:bg-gray-50 transition-colors">
+                        <div key={index} className="py-4 first:pt-0 last:pb-0 hover:bg-white transition-colors rounded-md">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <p className="text-sm">
                               <span className="font-medium text-gray-900">Amount:</span>{" "}
