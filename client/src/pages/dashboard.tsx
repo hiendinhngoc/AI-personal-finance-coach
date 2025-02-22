@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { HomeIcon, PlusIcon, BellIcon } from "lucide-react";
+import { BellIcon } from "lucide-react";
 import type { Budget, Expense, Notification } from "@shared/schema";
 
 const EXPENSE_CATEGORIES = [
@@ -77,13 +77,15 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="ghost" size="icon">
-                <HomeIcon className="h-5 w-5" />
-              </Button>
+              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto cursor-pointer" />
             </Link>
             <h1 className="text-3xl font-bold">Dashboard</h1>
           </div>
           <div className="flex items-center gap-4">
+            <p className="text-lg text-muted-foreground">
+              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, 
+              {user?.username} ⛅
+            </p>
             <Dialog>
               <DialogTrigger asChild>
                 <Button>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, HomeIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
@@ -56,14 +56,9 @@ export default function TestAI() {
       {/* Navigation Bar */}
       <div className="border-b bg-white">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon">
-                <HomeIcon className="h-5 w-5" />
-              </Button>
-            </Link>
-            <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto" />
-          </div>
+          <Link href="/">
+            <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto cursor-pointer" />
+          </Link>
           <h1 className="text-xl font-semibold">Test AI Model</h1>
         </div>
       </div>
@@ -113,8 +108,8 @@ export default function TestAI() {
                 )}
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading || (!prompt && !image)}
                 className="w-full sm:w-auto"
               >

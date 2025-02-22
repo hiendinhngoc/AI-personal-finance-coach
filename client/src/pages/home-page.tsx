@@ -7,6 +7,18 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
+        <div className="flex justify-between items-center mb-16">
+          <Link href="/">
+            <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto cursor-pointer" />
+          </Link>
+          <div className="text-right">
+            <p className="text-lg text-muted-foreground">
+              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"},
+              guest ⛅
+            </p>
+          </div>
+        </div>
+
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold mb-6">
             Welcome to Smart Budget
