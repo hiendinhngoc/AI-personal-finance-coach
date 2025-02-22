@@ -1,9 +1,13 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChartPieIcon, ArrowRightIcon, ReceiptIcon, BellIcon } from "lucide-react";
+import { ChartPieIcon, ArrowRightIcon, ReceiptIcon, BellIcon, SunIcon, MoonIcon } from "lucide-react";
 
 export default function HomePage() {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const TimeIcon = hour >= 18 || hour < 6 ? MoonIcon : SunIcon;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
@@ -11,10 +15,10 @@ export default function HomePage() {
           <Link href="/">
             <img src="/cp.jpg" alt="Company Logo" className="h-12 w-auto cursor-pointer" />
           </Link>
-          <div className="text-right">
+          <div className="text-right flex items-center gap-2">
+            <TimeIcon className="h-5 w-5 text-primary" />
             <p className="text-lg text-muted-foreground">
-              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"},
-              guest ⛅
+              {greeting} ⛅
             </p>
           </div>
         </div>
