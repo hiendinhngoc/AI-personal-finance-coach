@@ -7,6 +7,7 @@ import {
   ExpenseBudgetInformation,
   generateCostCuttingMeasureAdviseResponse,
   generateVisionResponse,
+  textLLM,
 } from "./llm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -104,6 +105,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ response });
     } catch (error) {
       res.status(500).json({ error: "Failed to generate response" });
+    }
+  });
+
+  app.get("/api/weather", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const response = await textLLM.invoke([
+        {
+          role: "system",
+          content: "You are a weather API. Return only a JSON object with the current weather in San Francisco with these fields: main (Clear/Clouds/Rain/Snow/Thunderstorm), description, temp (in Fahrenheit), humidity, windSpeed.",
+        },
+        {
+          role: "user",
+          content: "What's the current weather in San Francisco?",
+        },
+      ]);
+
+      const weatherData = JSON.parse(response.content as string);
+      res.json(weatherData);
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+      res.status(500).json({ error: "Failed to fetch weather data" });
     }
   });
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/use-theme";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, CloudIcon, SunIcon, CloudRainIcon, CloudSnowIcon, CloudLightningIcon } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +48,7 @@ import type {
   InsertExpense,
 } from "@shared/schema";
 import type { LucideIcon } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const EXPENSE_CATEGORIES = [
   "Food",
@@ -147,6 +148,16 @@ const convertVNDtoUSD = (vndAmount: number) => {
   return (vndAmount / rate).toFixed(2);
 };
 
+// Add weather icon mapping
+const WEATHER_ICONS = {
+  Clear: SunIcon,
+  Clouds: CloudIcon,
+  Rain: CloudRainIcon,
+  Snow: CloudSnowIcon,
+  Thunderstorm: CloudLightningIcon,
+} as const;
+
+
 const Dashboard = () => {
   const { toast } = useToast();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(TIME_FILTERS.MONTH);
@@ -160,6 +171,11 @@ const Dashboard = () => {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  const { data: weather } = useQuery({
+    queryKey: ['weather'],
+    queryFn: () => fetch('/api/weather').then(res => res.json())
+  })
 
   console.log(amount, selectedCategory);
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -398,6 +414,29 @@ const Dashboard = () => {
         </div>
       </header>
 
+      {/* Weather and Greeting Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h2 className="text-2xl font-semibold">
+              {getGreeting()}, {user?.username}
+            </h2>
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              {weather && (
+                <>
+                  {(() => {
+                    const WeatherIcon = WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] || CloudIcon;
+                    return <WeatherIcon className="h-5 w-5" />;
+                  })()}
+                  <span>{weather.description}</span>
+                  <span>{Math.round(weather.temp)}°F</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Budget Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -450,11 +489,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Expenses Table */}
-        <div
-          className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl 
-                       shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden"
-        >
+        {/* Expenses & Invoices Section */}
+        <div className="backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden">
           <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Expenses & Invoices</h2>
@@ -474,8 +510,13 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="space-y-4">
+          <Tabs defaultValue="list" className="p-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="list">Invoice List</TabsTrigger>
+              <TabsTrigger value="chart">Expense Chart</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="list" className="space-y-4">
               <div className="grid grid-cols-4 gap-4 py-3 px-6 text-sm font-medium text-gray-500 dark:text-gray-400">
                 <div>Category</div>
                 <div>Date</div>
@@ -485,20 +526,17 @@ const Dashboard = () => {
 
               <div className="space-y-2">
                 {expenses?.map((expense) => {
-                  const categoryConfig =
-                    CATEGORY_CONFIG[
-                      expense.category as keyof typeof CATEGORY_CONFIG
-                    ];
+                  const categoryConfig = CATEGORY_CONFIG[expense.category as keyof typeof CATEGORY_CONFIG];
                   const CategoryIcon = categoryConfig.icon;
 
                   return (
                     <div
                       key={expense.id}
                       className="group grid grid-cols-4 gap-4 p-4 rounded-xl 
-                                 backdrop-blur-sm bg-white/40 dark:bg-gray-800/40
-                                 hover:bg-white/60 dark:hover:bg-gray-800/60
-                                 transition-all duration-300 transform hover:scale-[1.02]
-                                 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                                backdrop-blur-sm bg-white/40 dark:bg-gray-800/40
+                                hover:bg-white/60 dark:hover:bg-gray-800/60
+                                transition-all duration-300 transform hover:scale-[1.02]
+                                hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
                     >
                       <div className="flex items-center gap-2">
                         <div
@@ -537,8 +575,22 @@ const Dashboard = () => {
                   );
                 })}
               </div>
-            </div>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="chart">
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="var(--primary)" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
