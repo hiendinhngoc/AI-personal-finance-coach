@@ -10,13 +10,13 @@ import {
   CloudLightningIcon,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import Markdown from 'react-markdown'
+import Markdown from "react-markdown";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import remarkGfm from 'remark-gfm'
+import remarkGfm from "remark-gfm";
 import {
   Dialog,
   DialogContent,
@@ -270,7 +270,13 @@ export default function Dashboard() {
   });
 
   const createChatMutation = useMutation({
-    mutationFn: async ({ message, threadId }: { message: string; threadId: number }) => {
+    mutationFn: async ({
+      message,
+      threadId,
+    }: {
+      message: string;
+      threadId: number;
+    }) => {
       const response = await apiRequest("POST", "/api/chat", {
         message,
         threadId,
@@ -278,19 +284,18 @@ export default function Dashboard() {
       return response;
     },
     onSuccess: async (data: any) => {
-      const parsedData = await data.json()
-      console.log("parsedData", parsedData.message)
+      const parsedData = await data.json();
+      console.log("parsedData", parsedData.message);
       toast({ title: "Message sent successfully" });
     },
     onError: (error) => {
-      toast({ 
-        title: "Error sending message", 
+      toast({
+        title: "Error sending message",
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
-  
 
   const createExpenseMutation = useMutation({
     mutationFn: async (data: {
@@ -408,11 +413,6 @@ export default function Dashboard() {
   const sortedGroups = Object.entries(groupedExpenses).sort((a, b) =>
     b[0].localeCompare(a[0])
   );
-  const handleSubmitMessage = async () => {
-    const response = createChatMutation.mutate({ message: "What is my current financial situation?", threadId: 1 });
-
-  };
-
 
   useEffect(() => {
     if (image) {
@@ -420,17 +420,13 @@ export default function Dashboard() {
     }
   }, [image]);
 
-  useEffect(() => {
-    handleSubmitMessage();
-  }, [])
-
   return (
     <div className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300'>
       <header className='sticky top-0 z-50 backdrop-blur-lg bg-white/75 dark:bg-gray-900/75 border-b border-gray-200/50 dark:border-gray-700/50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='h-16 flex items-center justify-between'>
-            <div className="flex items-center space-x-4">
-              <img src="/cp.jpg" alt="Company Logo" className="h-8 w-auto" />
+            <div className='flex items-center space-x-4'>
+              <img src='/cp.jpg' alt='Company Logo' className='h-8 w-auto' />
               <h1 className='text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent'>
                 AI Personal Finance Coach
               </h1>
@@ -488,9 +484,8 @@ export default function Dashboard() {
             <div className='flex items-center space-x-2 text-muted-foreground'>
               {(() => {
                 const WeatherIcon =
-                  WEATHER_ICONS[
-                    weather.main as keyof typeof WEATHER_ICONS
-                  ] || CloudIcon;
+                  WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] ||
+                  CloudIcon;
                 return <WeatherIcon className='h-5 w-5' />;
               })()}
               <span>{weather.description}</span>
@@ -646,7 +641,9 @@ export default function Dashboard() {
               <div className='prose dark:prose-invert max-w-none'>
                 {suggestions ? (
                   <>
-                    <Markdown remarkPlugins={[remarkGfm]}>{suggestions}</Markdown>
+                    <Markdown remarkPlugins={[remarkGfm]}>
+                      {suggestions}
+                    </Markdown>
 
                     <div className='mt-8 grid grid-cols-2 gap-6'>
                       <div className='border border-green-200 bg-green-50/50 dark:bg-green-900/20 rounded-lg p-4'>
