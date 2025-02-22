@@ -106,16 +106,17 @@ export class DatabaseStorage implements IStorage {
 
     // If budget exists, update it
     if (budget) {
-      const newRemainingAmount = budget.remainingAmount - insertExpense.amount;
+      const newRemainingAmount = budget.remainingAmount - expense.amount;
 
       // Update the budget's remaining amount
-      await db
+      const [updatedBudget] = await db
         .update(budgets)
         .set({ remainingAmount: newRemainingAmount })
-        .where(eq(budgets.id, budget.id));
+        .where(eq(budgets.id, budget.id))
+        .returning();
 
       // Create notification if budget is low
-      if (newRemainingAmount < budget.totalAmount * 0.2) {
+      if (newRemainingAmount < updatedBudget.totalAmount * 0.2) {
         await this.createNotification(
           userId,
           "Warning: You have less than 20% of your budget remaining"
