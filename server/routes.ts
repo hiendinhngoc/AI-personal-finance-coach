@@ -41,8 +41,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update remaining budget
     const budget = await storage.getBudget(req.user.id, new Date().toISOString().slice(0, 7));
     if (budget) {
-      await storage.updateBudget(budget.id, budget.remainingAmount - expense.amount);
-      if (budget.remainingAmount - expense.amount < budget.totalAmount * 0.2) {
+      const newRemainingAmount = budget.remainingAmount - expense.amount;
+      await storage.updateBudget(budget.id, newRemainingAmount);
+      if (newRemainingAmount < budget.totalAmount * 0.2) {
         await storage.createNotification(
           req.user.id,
           "Warning: You have less than 20% of your budget remaining"
