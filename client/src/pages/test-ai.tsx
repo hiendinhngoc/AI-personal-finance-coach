@@ -12,7 +12,7 @@ import type { ExpenseItem } from "@shared/schema";
 export default function TestAI() {
   const [prompt, setPrompt] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [response, setResponse] = useState<string | ExpenseItem | null>(null);
+  const [response, setResponse] = useState<string | ExpenseItem[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -102,10 +102,14 @@ export default function TestAI() {
                 {typeof response === "string" ? (
                   <pre className="whitespace-pre-wrap">{response}</pre>
                 ) : (
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Amount:</span> {response.amount}</p>
-                    <p><span className="font-medium">Currency:</span> {response.currency.toUpperCase()}</p>
-                    <p><span className="font-medium">Category:</span> {response.category}</p>
+                  <div className="space-y-4">
+                    {response.map((item, index) => (
+                      <div key={index} className="p-3 bg-background rounded border">
+                        <p><span className="font-medium">Amount:</span> {item.amount}</p>
+                        <p><span className="font-medium">Currency:</span> {item.currency.toUpperCase()}</p>
+                        <p><span className="font-medium">Category:</span> {item.category}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
