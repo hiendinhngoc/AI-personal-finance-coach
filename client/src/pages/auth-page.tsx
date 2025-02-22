@@ -10,6 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { ChartPieIcon } from "lucide-react";
+import { z } from "zod";
+
+// Extend the insertUserSchema with custom validation
+const authFormSchema = insertUserSchema.extend({
+  username: z.string()
+    .min(1, "Username or email is required")
+    .refine((val) => {
+      // Check if it's a valid email
+      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+      // If it's not an email, it should be at least 3 characters long
+      return emailRegex.test(val) || val.length >= 3;
+    }, {
+      message: "Must be a valid email or username (minimum 3 characters)",
+    }),
+});
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -22,7 +37,7 @@ export default function AuthPage() {
   }, [user, setLocation]);
 
   const form = useForm<InsertUser>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(authFormSchema),
     defaultValues: {
       username: "",
       password: "",
@@ -69,9 +84,9 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Username or Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your username" {...field} />
+                            <Input placeholder="Enter your username or email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -108,9 +123,9 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Username or Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your username" {...field} />
+                            <Input placeholder="Enter your username or email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
