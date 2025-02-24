@@ -121,7 +121,9 @@ const CATEGORY_CONFIG = {
   },
 } as const;
 
-const CHART_COLORS = Object.values(CATEGORY_CONFIG).map((config) => config.color);
+const CHART_COLORS = Object.values(CATEGORY_CONFIG).map(
+  (config) => config.color
+);
 
 const CATEGORY_ICONS = Object.fromEntries(
   Object.entries(CATEGORY_CONFIG).map(([key, value]) => [key, value.icon])
@@ -191,12 +193,19 @@ export default function Dashboard() {
     queryFn: () => fetch("/api/weather").then((res) => res.json()),
   });
 
-  const { data: analysis } = useQuery({
+  const { data: analysis } = useQuery<{
+    financialAdviceReport: "";
+    topSavingCategory: "";
+    topSpendingCategory: "";
+  }>({
     queryKey: [`/api/expenses/analysis/${month}`],
   });
 
-  const { financialAdviceReport = "", topSavingCategory = "", topSpendingCategory = "" } =
-    analysis || {};
+  const {
+    financialAdviceReport = "",
+    topSavingCategory = "",
+    topSpendingCategory = "",
+  } = analysis || {};
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -387,38 +396,43 @@ export default function Dashboard() {
   const remainingBudget = totalBudget - totalMonthlyExpenses;
 
   const chartData = useMemo(() => {
-    const normalizedData = expenses?.reduce((acc, expense) => {
-      const normalizedCategory = expense.category.charAt(0).toUpperCase() + expense.category.slice(1).toLowerCase();
+    const normalizedData =
+      expenses?.reduce((acc, expense) => {
+        const normalizedCategory =
+          expense.category.charAt(0).toUpperCase() +
+          expense.category.slice(1).toLowerCase();
 
-      if (!EXPENSE_CATEGORIES.includes(normalizedCategory)) {
-        const existingCategory = acc.find((item) => item.category === "Other");
-        if (existingCategory) {
-          existingCategory.value += expense.amount;
+        if (!EXPENSE_CATEGORIES.includes(normalizedCategory)) {
+          const existingCategory = acc.find(
+            (item) => item.category === "Other"
+          );
+          if (existingCategory) {
+            existingCategory.value += expense.amount;
+          } else {
+            acc.push({
+              category: "Other",
+              value: expense.amount,
+            });
+          }
         } else {
-          acc.push({
-            category: "Other",
-            value: expense.amount,
-          });
+          const existingCategory = acc.find(
+            (item) => item.category === normalizedCategory
+          );
+          if (existingCategory) {
+            existingCategory.value += expense.amount;
+          } else {
+            acc.push({
+              category: normalizedCategory,
+              value: expense.amount,
+            });
+          }
         }
-      } else {
-        const existingCategory = acc.find(
-          (item) => item.category === normalizedCategory
-        );
-        if (existingCategory) {
-          existingCategory.value += expense.amount;
-        } else {
-          acc.push({
-            category: normalizedCategory,
-            value: expense.amount,
-          });
-        }
-      }
-      return acc;
-    }, [] as { category: string; value: number }[]) || [];
+        return acc;
+      }, [] as { category: string; value: number }[]) || [];
 
     normalizedData.sort((a, b) => a.category.localeCompare(b.category));
 
-    console.log('Normalized Chart Data:', normalizedData);
+    console.log("Normalized Chart Data:", normalizedData);
     return normalizedData;
   }, [expenses]);
 
@@ -557,7 +571,9 @@ export default function Dashboard() {
         <div className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden'>
           <div className='p-6 border-b border-gray-200/50 dark:border-gray-700/50'>
             <div className='flex items-center justify-between'>
-              <h2 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>Expenses & Invoices</h2>
+              <h2 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
+                Expenses & Invoices
+              </h2>
               {activeTab !== "suggestions" && (
                 <div className='flex gap-2'>
                   {Object.entries(TIME_FILTERS).map(([key, value]) => (
@@ -645,28 +661,38 @@ export default function Dashboard() {
             <TabsContent value='chart'>
               <div className='h-[400px]'>
                 <ResponsiveContainer width='100%' height='100%'>
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
                     <CartesianGrid strokeDasharray='3 3' opacity={0.1} />
                     <XAxis
                       dataKey='category'
-                      tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569' }}
+                      tick={{ fill: theme === "dark" ? "#94a3b8" : "#475569" }}
                     />
                     <YAxis
-                      tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569' }}
+                      tick={{ fill: theme === "dark" ? "#94a3b8" : "#475569" }}
                       tickFormatter={formatChartValue}
-                      domain={[0, 'auto']}
+                      domain={[0, "auto"]}
                     />
                     <Tooltip
-                      formatter={(value: number) => [formatCurrency(value), 'Amount']}
+                      formatter={(value: number) => [
+                        formatCurrency(value),
+                        "Amount",
+                      ]}
                       contentStyle={{
-                        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        backgroundColor:
+                          theme === "dark" ? "#1f2937" : "#ffffff",
+                        border: "1px solid #e2e8f0",
                       }}
                     />
                     <Bar dataKey='value' minPointSize={5}>
                       {chartData.map((entry, index) => {
-                        const category = entry.category as keyof typeof CATEGORY_CONFIG;
-                        const color = CATEGORY_CONFIG[category]?.color || CHART_COLORS[index % CHART_COLORS.length];
+                        const category =
+                          entry.category as keyof typeof CATEGORY_CONFIG;
+                        const color =
+                          CATEGORY_CONFIG[category]?.color ||
+                          CHART_COLORS[index % CHART_COLORS.length];
                         return <Cell key={`cell-${index}`} fill={color} />;
                       })}
                     </Bar>
@@ -815,7 +841,7 @@ export default function Dashboard() {
                           ) : (
                             <span>Pick a date</span>
                           )}
-                                                </Button>
+                        </Button>
                       </PopoverTrigger>
                       <PopoverContent className='w-auto p-0' align='start'>
                         <Calendar
