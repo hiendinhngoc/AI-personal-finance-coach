@@ -391,7 +391,6 @@ export default function Dashboard() {
       const normalizedCategory = expense.category.charAt(0).toUpperCase() + expense.category.slice(1).toLowerCase();
 
       if (!EXPENSE_CATEGORIES.includes(normalizedCategory)) {
-        // If category doesn't match our predefined list, put it in Other
         const existingCategory = acc.find((item) => item.category === "Other");
         if (existingCategory) {
           existingCategory.value += expense.amount;
@@ -417,7 +416,6 @@ export default function Dashboard() {
       return acc;
     }, [] as { category: string; value: number }[]) || [];
 
-    // Sort by category to maintain consistent order
     normalizedData.sort((a, b) => a.category.localeCompare(b.category));
 
     console.log('Normalized Chart Data:', normalizedData);
@@ -502,11 +500,11 @@ export default function Dashboard() {
 
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
         <div className='flex items-center justify-between'>
-          <h2 className='text-2xl font-semibold'>
+          <h2 className='text-2xl font-semibold text-gray-900 dark:text-gray-100'>
             {getGreeting()}, {user?.username}
           </h2>
           {weather && (
-            <div className='flex items-center space-x-2 text-muted-foreground'>
+            <div className='flex items-center space-x-2 text-gray-600 dark:text-gray-300'>
               {(() => {
                 const WeatherIcon =
                   WEATHER_ICONS[weather.main as keyof typeof WEATHER_ICONS] ||
@@ -559,7 +557,7 @@ export default function Dashboard() {
         <div className='backdrop-blur-lg bg-white/40 dark:bg-gray-800/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden'>
           <div className='p-6 border-b border-gray-200/50 dark:border-gray-700/50'>
             <div className='flex items-center justify-between'>
-              <h2 className='text-xl font-semibold'>Expenses & Invoices</h2>
+              <h2 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>Expenses & Invoices</h2>
               {activeTab !== "suggestions" && (
                 <div className='flex gap-2'>
                   {Object.entries(TIME_FILTERS).map(([key, value]) => (
@@ -578,21 +576,17 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <Tabs
-            defaultValue='list'
-            className='p-6'
-            onValueChange={setActiveTab}
-          >
+          <Tabs defaultValue='list' className='p-6'>
             <TabsList className='grid w-full grid-cols-3 mb-6'>
               <TabsTrigger value='list'>Invoice List</TabsTrigger>
               <TabsTrigger value='chart'>Expense Chart</TabsTrigger>
               <TabsTrigger value='suggestions'>Suggestions</TabsTrigger>
             </TabsList>
 
-            <TabsContent value='list' className='space-y-4'>
+            <TabsContent value='list'>
               {sortedGroups.map(([monthYear, monthExpenses]) => (
                 <div key={monthYear} className='space-y-4'>
-                  <h3 className='text-lg font-semibold px-6'>
+                  <h3 className='text-lg font-semibold text-gray-900 dark:text-gray-100 px-6'>
                     {new Date(monthYear).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
@@ -636,7 +630,7 @@ export default function Dashboard() {
                           </div>
 
                           <div className='flex items-center justify-end'>
-                            <span className='text-lg font-semibold tracking-tight'>
+                            <span className='text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100'>
                               {formatCurrency(expense.amount)}
                             </span>
                           </div>
@@ -660,7 +654,7 @@ export default function Dashboard() {
                     <YAxis
                       tick={{ fill: theme === 'dark' ? '#94a3b8' : '#475569' }}
                       tickFormatter={formatChartValue}
-                      domain={[0, 'auto']}  // Ensure minimum of 0
+                      domain={[0, 'auto']}
                     />
                     <Tooltip
                       formatter={(value: number) => [formatCurrency(value), 'Amount']}
@@ -719,7 +713,6 @@ export default function Dashboard() {
           </Tabs>
         </div>
       </main>
-
       {showBudgetModal && (
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
           <DialogTrigger asChild>
@@ -822,7 +815,7 @@ export default function Dashboard() {
                           ) : (
                             <span>Pick a date</span>
                           )}
-                        </Button>
+                                                </Button>
                       </PopoverTrigger>
                       <PopoverContent className='w-auto p-0' align='start'>
                         <Calendar
