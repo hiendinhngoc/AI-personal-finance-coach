@@ -38,6 +38,8 @@ export const initializeAgent = async () => {
 export const getMessage = async (agent: CompiledStateGraph<any, any>, currentFinancialData: ExpenseBudgetInformation, threadId: number, userQuestion: string) => {
     try {
         console.log(`Processing message for thread ${threadId}`);
+        console.log('Current Financial Data:', currentFinancialData);
+
         const agentState = await agent.invoke(
             {
                 messages: [
@@ -48,9 +50,18 @@ export const getMessage = async (agent: CompiledStateGraph<any, any>, currentFin
                         You will be given full data on my current financial situation.
                         ---
                         Here is my current financial data: 
-                        ${JSON.stringify(currentFinancialData)}
+                        Monthly Budget: ${formatCurrency(currentFinancialData.budget)}
+                        Total Expenses This Month: ${formatCurrency(currentFinancialData.totalExpenses)}
+                        Remaining Budget: ${formatCurrency(currentFinancialData.budget - currentFinancialData.totalExpenses)}
+
+                        Expense Breakdown:
+                        ${currentFinancialData.expenseDetails?.map(detail => 
+                            `${detail.category}: ${formatCurrency(detail.amount)}`
+                        ).join('\n')}
                         ---
                         Respond concisely under 100 words
+                        Always acknowledge the user's current budget and expenses in your responses.
+                        If the budget is exceeded, provide specific advice on reducing expenses.
                         `,
                     ),
                     new HumanMessage(userQuestion)
@@ -65,4 +76,11 @@ export const getMessage = async (agent: CompiledStateGraph<any, any>, currentFin
         console.error(`Error processing message for thread ${threadId}:`, error);
         return "Sorry, I couldn't find any advice for you. Please try again later.";
     }
+}
+
+function formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(amount);
 }
